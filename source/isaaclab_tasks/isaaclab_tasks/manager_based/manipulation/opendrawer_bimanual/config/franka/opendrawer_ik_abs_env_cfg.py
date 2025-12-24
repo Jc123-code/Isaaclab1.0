@@ -2,26 +2,22 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-import numpy as np
-import torch
-
 import isaaclab.sim as sim_utils
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.utils import configclass
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR,ISAACLAB_NUCLEUS_DIR
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.sensors import CameraCfg, FrameTransformerCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
-from isaaclab.utils.math import quat_from_euler_xyz, subtract_frame_transforms
 
 from . import opendrawer_joint_pos_env_cfg
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,FRANKA_PANDA_TACT_HIGH_PD_CFG)  # isort: skip
+from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,)  # isort: skip
 
 
 @configclass
@@ -53,16 +49,6 @@ class FrankaOpenDrawerEnvCfg(opendrawer_joint_pos_env_cfg.FrankaOpenDrawerEnvCfg
 
         self.scene.zed_right = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Stand/ZED_X/base_link/ZED_X/CameraRight",
-            update_period=0.0333,
-            height=480,
-            width=640,
-            data_types=["rgb", "distance_to_image_plane"],
-            spawn=None,
-        )
-
-
-        self.scene.zed_middle = CameraCfg(
-            prim_path="{ENV_REGEX_NS}/Stand/ZED_X/base_link/ZED_X/CameraMiddle",
             update_period=0.0333,
             height=480,
             width=640,

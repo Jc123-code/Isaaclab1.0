@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 
-def drawer_opened(
+def rightdrawer_opened(
     env: ManagerBasedRLEnv,
     dist_threshold: float = 0.7,
 ):

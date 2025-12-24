@@ -488,7 +488,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        default="/home/wgk/code/IsaacLab/datasets/dataset.hdf5",
+        default="/home/abc/code/IsaacLab/datasets/dataset.hdf5",
         help="(optional) if provided, override the dataset path defined in the config",
     )
 

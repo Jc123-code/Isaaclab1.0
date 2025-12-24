@@ -262,8 +262,8 @@ def export_episode_videos(
 if __name__ == '__main__':
     # 假设你的 handler 类名就是 HDF5DatasetFileHandler，并与此函数在同一模块
     manifest_path = export_episode_videos(
-        hdf5_path="/home/wgk/code/IsaacLab2/IsaacLab/datasets/dataset.hdf5",
-        out_dir="/home/wgk/code/IsaacLab2/IsaacLab/datasets/videos",
+        hdf5_path="/home/abc/code/IsaacLab2/IsaacLab/datasets/dataset.hdf5",
+        out_dir="/home/abc/code/IsaacLab2/IsaacLab/datasets/videos",
         handler_cls=HDF5DatasetFileHandler,
         device="cpu",           # 或 "cuda"
         fps=None,               # None 表示自动从 env_args 推断（优先找 fps/camera_fps/frame_hz/step_hz），找不到则 30

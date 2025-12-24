@@ -44,26 +44,15 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     # # Cameras
     wrist_cam_left: CameraCfg = MISSING
     wrist_cam_right: CameraCfg = MISSING
-
-    # tact_right_left: CameraCfg = MISSING
-    # tact_right_right: CameraCfg = MISSING
-    # tact_left_left: CameraCfg = MISSING
-    # tact_left_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
-
-
-    # camera_light_l_l: AssetBaseCfg = MISSING
-    # camera_light_l_r: AssetBaseCfg = MISSING
-    # camera_light_r_l: AssetBaseCfg = MISSING
-    # camera_light_r_r: AssetBaseCfg = MISSING
 
 
     # Table
     table = ArticulationCfg(
         # 设置物体的路径，就是在场景树中相对于环境的路径
         prim_path="{ENV_REGEX_NS}/Table",
-        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/work_table.usdc",
+        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/work_wood_table/work_wood_table.usdc",
                          scale=(0.5, 0.5, 0.5)),
         # 设置初始状态
         init_state=ArticulationCfg.InitialStateCfg(
@@ -71,7 +60,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             joint_pos={
                 "door_left_joint": 0.0,
                 "door_right_joint": 0.0,
-                "drawer_left_joint": -0.3,
+                "drawer_left_joint": -1,
                 "drawer_right_joint": -0.3,
             },
         ),
@@ -214,27 +203,7 @@ class ObservationsCfg:
         zed_right = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_right"), "data_type": "rgb", "normalize": False}
         )
-        zed_middle = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_middle"), "data_type": "rgb", "normalize": False}
-        )
 
-        # 深度
-        wrist_cam_left_depth = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam_left"), "data_type": "distance_to_image_plane", "normalize": False}
-        )
-        wrist_cam_right_depth = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam_right"), "data_type": "distance_to_image_plane", "normalize": False}
-        )
-        zed_left_depth = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_left"), "data_type": "distance_to_image_plane", "normalize": False}
-        )
-        zed_right_depth = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_right"), "data_type": "distance_to_image_plane", "normalize": False}
-        )        
-        zed_middle_depth = ObsTerm(
-            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_middle"), "data_type": "distance_to_image_plane", "normalize": False}
-        )
-        
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -282,7 +251,7 @@ class ObservationsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    success = DoneTerm(func=mdp.drawer_opened)
+    success = DoneTerm(func=mdp.rightdrawer_opened)
 
 
 @configclass
