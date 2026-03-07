@@ -62,6 +62,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                 "door_right_joint": 0.0,
                 "drawer_left_joint": -1,
                 "drawer_right_joint": -0.3,
+                # "door_handle_joint": 0.0,
             },
         ),
         # 设置内部关节限制
@@ -81,6 +82,14 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                 stiffness=10.0,
                 damping=10.5,
             ),
+            #         # 添加门把手的actuator配置
+            # "door_handle": ImplicitActuatorCfg(
+            #     joint_names_expr=["door_handle_joint"],  # 替换为你的关节名称
+            #     effort_limit=50.0,  # 根据需要调整
+            #     velocity_limit=100.0,
+            #     stiffness=50.0,  # 门把手通常需要较小的刚度
+            #     damping=50.0,
+            # ),
         },
     )
 
@@ -203,7 +212,10 @@ class ObservationsCfg:
         zed_right = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_right"), "data_type": "rgb", "normalize": False}
         )
-
+        table_cam = ObsTerm(
+            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
+        )
+        
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False

@@ -118,7 +118,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rot=(0.5,0.5,-0.5,-0.5)
         ),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/cleantable/dustpan2.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/cleantable/dustpan.usd",
             scale=(0.2, 0.2, 0.2),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=False,
@@ -145,7 +145,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rot=(0.5, 0.5, 0.5, 0.5)
         ),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/cleantable/Broom_PSX2.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/cleantable/broom.usd",
             scale=(1.0, 0.3, 0.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=False,
@@ -278,7 +278,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rot=(0.5, 0.5, 0.5, 0.5)
         ),
         spawn=UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/dustpan2.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/dustpan.usd",
             scale=(0.2, 0.2, 0.2),
             # visual_material=sim_utils.PreviewSurfaceCfg(  # ✅ 关键点
             #     diffuse_color=(0.0, 0.0, 0.0),  # 红色
@@ -295,7 +295,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rot=(0.5, 0.5, 0.5, 0.5)
         ),
         spawn=UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/Broom_PSX2.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/broom.usd",
             scale=(1, 0.3, 0.5),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.1, density=0.1),
             # visual_material=sim_utils.PreviewSurfaceCfg(  # ✅ 关键点
@@ -464,7 +464,10 @@ class ObservationsCfg:
         zed_right = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_right"), "data_type": "rgb", "normalize": False}
         )
-
+        table_cam = ObsTerm(
+            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
+        )
+        
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False

@@ -77,12 +77,18 @@ def normalize_hdf5_actions(config: Config, log_dir: str) -> str:
     Returns:
         Path to the normalized dataset.
     """
-    base, ext = os.path.splitext(config.train.data)
+    # Get the dataset path - handle both string and list formats
+    if isinstance(config.train.data, list):
+        dataset_path = config.train.data[0]["path"]
+    else:
+        dataset_path = config.train.data
+    
+    base, ext = os.path.splitext(dataset_path)
     normalized_path = base + "_normalized" + ext
 
     # Copy the original dataset
     print(f"Creating normalized dataset at {normalized_path}")
-    shutil.copyfile(config.train.data, normalized_path)
+    shutil.copyfile(dataset_path, normalized_path)
 
     # Open the new dataset and normalize the actions
     with h5py.File(normalized_path, "r+") as f:
@@ -111,6 +117,7 @@ def normalize_hdf5_actions(config: Config, log_dir: str) -> str:
             param_file.write(f"max: {max_val}\n")
 
     return normalized_path
+
 
 def get_env_metadata_from_dataset(dataset_path, set_env_specific_obs_processors=True):
     """
@@ -142,6 +149,7 @@ def get_env_metadata_from_dataset(dataset_path, set_env_specific_obs_processors=
         # handle env-specific custom observation processing logic
         EnvUtils.set_env_specific_obs_processing(env_meta=env_meta)
     return env_meta
+
 
 def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: str):
     """Train an ACT model using the algorithm specified in config.
@@ -175,7 +183,11 @@ def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: s
     ObsUtils.initialize_obs_utils_with_config(config)
 
     # make sure the dataset exists
-    dataset_path = os.path.expanduser(config.train.data)
+    if isinstance(config.train.data, list):
+        dataset_path = os.path.expanduser(config.train.data[0]["path"])
+    else:
+        dataset_path = os.path.expanduser(config.train.data)
+    
     if not os.path.exists(dataset_path):
         raise FileNotFoundError(f"Dataset at provided path {dataset_path} not found!")
 
@@ -473,6 +485,58 @@ def main(args: argparse.Namespace):
     if args.epochs is not None:
         config.train.num_epochs = args.epochs
 
+    # ========== 启用验证集配置 ==========
+    with config.values_unlocked():
+        # 1. 启用验证
+        config.experiment.validate = True
+        config.experiment.validation_epoch_every_n_steps = 100
+        
+        # 2. 确保data是列表格式
+        if isinstance(config.train.data, str):
+            data_path = config.train.data
+            config.train.data = [{"path": data_path}]
+        
+        #3. 获取数据集路径
+        dataset_path = config.train.data[0]["path"] if isinstance(config.train.data, list) else config.train.data
+        
+    # 4. 检查数据集是否已经有train/valid分割
+        import h5py
+        with h5py.File(dataset_path, "r") as f:
+            demo_keys = list(f["data"].keys())
+            has_train_split = False
+            if len(demo_keys) > 0:
+                first_demo = f[f"data/{demo_keys[0]}"]
+                if "train" in first_demo.attrs:
+                    has_train_split = True
+
+     # 5. 如果没有分割，自动分割数据集
+        if not has_train_split:
+            print(f"\n{'='*60}")
+            print(">>> Dataset does not have train/valid split")
+            print(">>> Automatically splitting dataset...")
+            print(f"{'='*60}\n")
+
+            # 使用robomimic的split功能
+        from robomimic.scripts.split_train_val import split_train_val_from_hdf5
+        split_train_val_from_hdf5(
+            hdf5_path=dataset_path,
+            val_ratio=0.1,
+            filter_key=None
+        )
+        print(">>> Dataset split completed!\n")
+
+        # 6. 设置filter keys
+        config.train.hdf5_filter_key = "train"
+        config.train.hdf5_validation_filter_key = "valid"
+        # 7. 打印配置信息
+        print(f"\n{'='*60}")
+        print(f">>> Validation ENABLED")
+        print(f">>> Filter key: train")
+        print(f">>> Validation filter key: valid")
+        print(f">>> Validation every {config.experiment.validation_epoch_every_n_steps} steps")
+        print(f"{'='*60}\n")
+            
+
     # change location of experiment directory
     config.train.output_dir = os.path.abspath(os.path.join("./logs", args.log_dir, args.task))
 
@@ -481,8 +545,16 @@ def main(args: argparse.Namespace):
     # ===== 动作归一化：在这里调用 =====
     if args.normalize_training_actions:
         print("\n============= Normalizing Training Actions =============")
-        config.train.data = normalize_hdf5_actions(config, log_dir)
-        print(f"Using normalized dataset: {config.train.data}")
+        normalized_path = normalize_hdf5_actions(config, log_dir)
+        
+        # Update the config with normalized dataset path
+        with config.values_unlocked():
+            if isinstance(config.train.data, list):
+                config.train.data[0]["path"] = normalized_path
+            else:
+                config.train.data = normalized_path
+        
+        print(f"Using normalized dataset: {normalized_path}")
         print("Normalization parameters saved to: {}/normalization_params.txt".format(log_dir))
         print("=" * 60 + "\n")
 
@@ -522,7 +594,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task", 
         type=str, 
-        default="Isaac-Get-BlueBook-Franka-Bimanual-IK-Abs-v0", 
+        default="Isaac-Open-Left-Drawer-Franka-Bimanual-IK-Abs-v0", 
         help="Name of the task."
     )
     

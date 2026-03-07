@@ -41,6 +41,7 @@ gym.register(
         "env_cfg_entry_point": closedrawer_ik_abs_env_cfg.FrankaCloseDrawerEnvCfg, # 环境入口
         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),  # 算法入口
         "robomimic_diffusion_policy_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/dp_unet_image.json"),  # 算法入口
+        "robomimic_act_cfg_entry_point": "/home/abc/IsaacLab/robomimic/robomimic/exps/templates/act.json",   # act算法入口
     },
     disable_env_checker=True,
 )

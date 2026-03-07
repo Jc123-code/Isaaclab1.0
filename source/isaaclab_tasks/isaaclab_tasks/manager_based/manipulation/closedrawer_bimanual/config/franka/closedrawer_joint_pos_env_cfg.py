@@ -47,7 +47,7 @@ class EventCfg:
         func=franka_closedrawer_events.set_default_joint_pose,
         mode="startup",
         params={
-            "default_pose": [[-0.25 ,0.0 ,0.0 ,0.0]],   #抽屉初始位置，看usd文件
+            "default_pose": [[-0.25 ,0.0 ,0.0 ,0.0,0.0]],   #抽屉初始位置，看usd文件
             "asset_cfg": [SceneEntityCfg("table")],
         },
     )
@@ -155,7 +155,7 @@ class FrankaCloseDrawerEnvCfg(CloseDrawerEnvCfg):
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
             ),
-            offset=CameraCfg.OffsetCfg(pos=(2.424, 0.0, 0.8), rot=(-0.3799, 0.5963, 0.5963, -0.3799), convention="ros"),
+            offset=CameraCfg.OffsetCfg(pos=(0.25318, 0.08603, 3.72038), rot=(0.02656,-0.70663,0.70695,-0.01408), convention="ros"),
         )
 
         # Listens to the required transforms

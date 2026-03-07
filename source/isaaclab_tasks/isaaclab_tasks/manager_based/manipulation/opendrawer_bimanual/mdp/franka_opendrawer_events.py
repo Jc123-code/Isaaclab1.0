@@ -52,32 +52,70 @@ def set_default_joint_pose(
             assert pose.shape[-1] == dof 
             asset.data.default_joint_pos = (pose.repeat(env.num_envs, 1))
 
+# def reset_to_default_joint_pose(
+#     env: ManagerBasedEnv,
+#     env_ids: torch.Tensor,
+#     default_pose: Union[torch.Tensor, Sequence[torch.Tensor]] | None,
+#     asset_cfg: Union[SceneEntityCfg, Sequence[SceneEntityCfg]] = SceneEntityCfg("robot"),
+# ):
+#     """
+#     """
+#     cfgs = _as_seq(asset_cfg)
+
+#     if default_pose is not None:
+#         poses = _as_seq(default_pose)
+#         for pose, cfg  in zip(poses, cfgs):
+#             asset: Articulation = env.scene[cfg.name]
+#             pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
+#             dof = asset.data.default_joint_pos.shape[-1]
+#             assert pose.shape[-1] == dof 
+#             asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+#     else:
+#         for cfg  in cfgs:
+#             asset: Articulation = env.scene[cfg.name]
+#             pose = asset.data.default_joint_pos  # (1, DoF)
+#             dof = asset.data.default_joint_pos.shape[-1]
+#             assert pose.shape[-1] == dof 
+#             asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+
+
 def reset_to_default_joint_pose(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
     default_pose: Union[torch.Tensor, Sequence[torch.Tensor]] | None,
     asset_cfg: Union[SceneEntityCfg, Sequence[SceneEntityCfg]] = SceneEntityCfg("robot"),
 ):
-    """
-    """
+    """重置关节到默认位置，并清零速度。"""
     cfgs = _as_seq(asset_cfg)
 
     if default_pose is not None:
         poses = _as_seq(default_pose)
-        for pose, cfg  in zip(poses, cfgs):
+        for pose, cfg in zip(poses, cfgs):
             asset: Articulation = env.scene[cfg.name]
-            pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
+            pose_tensor = torch.as_tensor(pose, device=env.device).view(1, -1)
             dof = asset.data.default_joint_pos.shape[-1]
-            assert pose.shape[-1] == dof 
-            asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+            assert pose_tensor.shape[-1] == dof
+            
+            # 扩展到需要重置的环境数量
+            num_reset = len(env_ids)
+            joint_pos = pose_tensor.expand(num_reset, -1)
+            joint_vel = torch.zeros(num_reset, dof, device=env.device)
+            
+            # 写入位置和速度
+            asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
     else:
-        for cfg  in cfgs:
+        for cfg in cfgs:
             asset: Articulation = env.scene[cfg.name]
-            pose = asset.data.default_joint_pos  # (1, DoF)
-            dof = asset.data.default_joint_pos.shape[-1]
-            assert pose.shape[-1] == dof 
-            asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+            
+            # 使用默认关节位置
+            joint_pos = asset.data.default_joint_pos[env_ids]
+            joint_vel = torch.zeros_like(joint_pos)
+            
+            # 写入位置和速度
+            asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
+
+            
 def randomize_joint_by_gaussian_offset(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,

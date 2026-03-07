@@ -5,10 +5,14 @@
 
 """Script to play and evaluate a trained policy from robomimic."""
 
+# ===== CRITICAL: Add ACT to Python path BEFORE any imports =====
+import sys
+sys.path.insert(0, '/home/abc/IsaacLab/act')
+sys.path.insert(0, '/home/abc/IsaacLab/act/detr')
+
 """Launch Isaac Sim Simulator first."""
 
 import argparse
-
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
@@ -24,6 +28,7 @@ parser.add_argument("--seed", type=int, default=101, help="Random seed.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
+
 # parse the arguments
 args_cli = parser.parse_args()
 
@@ -43,76 +48,87 @@ from isaaclab_tasks.utils import parse_env_cfg
 
 
 def rollout(policy, env, horizon, device):
-    policy.start_episode
+    policy.start_episode()
     obs_dict, _ = env.reset()
     traj = dict(actions=[], obs=[], next_obs=[])
-
+    
     for i in range(horizon):
         # Prepare observations
         obs = obs_dict["policy"]
         for ob in obs:
             obs[ob] = torch.squeeze(obs[ob])
         traj["obs"].append(obs)
-
+        
         # Compute actions
         actions = policy(obs)
         actions = torch.from_numpy(actions).to(device=device).view(1, env.action_space.shape[1])
-
+        
         # Apply actions
         obs_dict, _, terminated, truncated, _ = env.step(actions)
         obs = obs_dict["policy"]
-
+        
         # Record trajectory
         traj["actions"].append(actions.tolist())
         traj["next_obs"].append(obs)
-
+        
         if terminated:
             return True, traj
         elif truncated:
             return False, traj
-
+    
     return False, traj
 
 
 def main():
     """Run a trained policy from robomimic with Isaac Lab environment."""
     # parse configuration
-    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=1, use_fabric=not args_cli.disable_fabric)
-
+    env_cfg = parse_env_cfg(
+        args_cli.task, 
+        device=args_cli.device, 
+        num_envs=1, 
+        use_fabric=not args_cli.disable_fabric
+    )
+    
     # Set observations to dictionary mode for Robomimic
     env_cfg.observations.policy.concatenate_terms = False
-
+    
     # Set termination conditions
     env_cfg.terminations.time_out = None
-
+    
     # Disable recorder
     env_cfg.recorders = None
-
+    
     # Create environment
     env = gym.make(args_cli.task, cfg=env_cfg).unwrapped
-
+    
     # Set seed
     torch.manual_seed(args_cli.seed)
     env.seed(args_cli.seed)
-
+    
     # Acquire device
     device = TorchUtils.get_torch_device(try_to_use_cuda=True)
-
+    
     # Load policy
+    print(f"\n[INFO] Loading checkpoint: {args_cli.checkpoint}")
     policy, _ = FileUtils.policy_from_checkpoint(ckpt_path=args_cli.checkpoint, device=device, verbose=True)
-
+    print("[INFO] Policy loaded successfully!\n")
+    
     # Run policy
     results = []
     for trial in range(args_cli.num_rollouts):
-        print(f"[INFO] Starting trial {trial}")
+        print(f"[INFO] Starting trial {trial + 1}/{args_cli.num_rollouts}")
         terminated, traj = rollout(policy, env, args_cli.horizon, device)
         results.append(terminated)
-        print(f"[INFO] Trial {trial}: {terminated}\n")
-
-    print(f"\nSuccessful trials: {results.count(True)}, out of {len(results)} trials")
-    print(f"Success rate: {results.count(True) / len(results)}")
-    print(f"Trial Results: {results}\n")
-
+        status = "SUCCESS" if terminated else "FAILED"
+        print(f"[INFO] Trial {trial + 1}: {status}\n")
+    
+    # Print summary
+    print("=" * 60)
+    print(f"Successful trials: {results.count(True)} / {len(results)}")
+    print(f"Success rate: {results.count(True) / len(results) * 100:.1f}%")
+    print(f"Trial Results: {results}")
+    print("=" * 60)
+    
     env.close()
 
 

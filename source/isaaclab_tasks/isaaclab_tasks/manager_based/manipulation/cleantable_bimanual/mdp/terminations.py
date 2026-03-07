@@ -115,7 +115,7 @@ if TYPE_CHECKING:
 #     return success
 
 #第五版
-def table_clean(env: ManagerBasedRLEnv, dist_threshold: float = 0.1):
+def table_clean(env: ManagerBasedRLEnv, dist_threshold: float = 0.17):
     drawer_tf_data: FrameTransformerData = env.scene["table_frame"].data
     
     # 计算各轴距离
@@ -124,9 +124,9 @@ def table_clean(env: ManagerBasedRLEnv, dist_threshold: float = 0.1):
     dist_z = torch.norm(drawer_tf_data.target_pos_w[..., 0, [2]] - drawer_tf_data.target_pos_w[..., 1, [2]], dim=-1)
     
     # 三个条件
-    x_condition = dist_x < 0.1
+    x_condition = dist_x < 0.2
     y_condition = dist_y < dist_threshold
-    z_condition = dist_z < 0.1
+    z_condition = dist_z < 0.2
     
     # 组合条件
     success = x_condition & y_condition & z_condition

@@ -26,9 +26,6 @@ class FrankaCloseDrawerEnvCfg(closedrawer_joint_pos_env_cfg.FrankaCloseDrawerEnv
         # post init of parent
         super().__post_init__()
 
-        # Set Franka as robot
-        # We switch here to a stiffer PD controller for IK tracking to be better.
-        # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下
         self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
                                 init_state=ArticulationCfg.InitialStateCfg(pos=[0, -0.05, 1.6],rot=[0.707107, 0.707107, 0.0, 0.0],))#wxyz  
         self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
