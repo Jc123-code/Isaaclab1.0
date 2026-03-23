@@ -155,7 +155,7 @@ class FrankaCloseLeftDrawerEnvCfg(CloseLeftDrawerEnvCfg):
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
             ),
-            offset=CameraCfg.OffsetCfg(pos=(0.25318, 0.08603, 3.72038), rot=(0.02656,-0.70663,0.70695,-0.01408), convention="ros"),
+            offset=CameraCfg.OffsetCfg(pos=(0.25318, -0.03488, 3.72038), rot=(0.02656,-0.70663,0.70695,-0.01408), convention="ros"),
         )
 
         # Listens to the required transforms
