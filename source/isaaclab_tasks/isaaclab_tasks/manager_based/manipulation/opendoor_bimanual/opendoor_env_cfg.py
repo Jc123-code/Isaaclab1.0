@@ -86,7 +86,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
 
 
 
-
     # plane
     plane = AssetBaseCfg(
         prim_path="/World/GroundPlane",

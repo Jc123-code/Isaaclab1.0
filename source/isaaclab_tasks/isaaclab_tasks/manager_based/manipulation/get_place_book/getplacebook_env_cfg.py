@@ -130,7 +130,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rot=(-0.5, 0.5, -0.5, 0.5)  #-0.5, 0.5, -0.5, 0.5
         ),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/Book_Stone_Electric1.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/getbook/Book_Stone_Electric1.usdz",
             scale=(0.06, 0.06, 0.06),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(  # ✅ 添加刚体属性
                 disable_gravity=False,
@@ -151,7 +151,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             rot=((0.5, 0.5, 0.5, 0.5))
         ),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/Book_Harry_Potter1.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/getbook/Book_Harry_Potter1.usdz",
             scale=(0.05, 0.05, 0.05),
             # ✅ 刚体属性：必须要加，才能让书具备物理特性
             rigid_props=sim_utils.RigidBodyPropertiesCfg(

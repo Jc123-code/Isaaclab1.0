@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 def door_right_opened(
     env: ManagerBasedRLEnv,
-    dist_threshold: float = 0.6,
+    dist_threshold: float = 0.4,
 ):
     drawer_tf_data: FrameTransformerData = env.scene["table_frame"].data
     # 查看偏差

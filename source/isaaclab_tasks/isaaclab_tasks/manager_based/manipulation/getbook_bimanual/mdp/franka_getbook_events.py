@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import random
+import warnings
 import torch
 from typing import TYPE_CHECKING, Sequence, Union
 import isaaclab.utils.math as math_utils
@@ -42,7 +43,19 @@ def set_default_joint_pose(
             asset: Articulation = env.scene[cfg.name]
             pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
             dof = asset.data.default_joint_pos.shape[-1]
-            assert pose.shape[-1] == dof 
+            if pose.shape[-1] != dof:
+                if pose.shape[-1] > dof:
+                    pose = pose[..., :dof]
+                else:
+                    pose_padded = asset.data.default_joint_pos.clone()  # (1, dof)
+                    pose_padded[..., : pose.shape[-1]] = pose
+                    pose = pose_padded
+                warnings.warn(
+                    f"[set_default_joint_pose] default_pose dim mismatch for '{cfg.name}': "
+                    f"got {pose.shape[-1]} vs dof {dof}. Adapted to match DOF.",
+                    stacklevel=2,
+                )
+            assert pose.shape[-1] == dof
             asset.data.default_joint_pos = (pose.repeat(env.num_envs, 1))
     else:
         for cfg  in cfgs:
@@ -69,7 +82,19 @@ def reset_to_default_joint_pose(
             asset: Articulation = env.scene[cfg.name]
             pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
             dof = asset.data.default_joint_pos.shape[-1]
-            assert pose.shape[-1] == dof 
+            if pose.shape[-1] != dof:
+                if pose.shape[-1] > dof:
+                    pose = pose[..., :dof]
+                else:
+                    pose_padded = asset.data.default_joint_pos.clone()  # (1, dof)
+                    pose_padded[..., : pose.shape[-1]] = pose
+                    pose = pose_padded
+                warnings.warn(
+                    f"[reset_to_default_joint_pose] default_pose dim mismatch for '{cfg.name}': "
+                    f"adapted to dof {dof}.",
+                    stacklevel=2,
+                )
+            assert pose.shape[-1] == dof
             asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
     else:
         for cfg  in cfgs:
@@ -113,7 +138,7 @@ def randomize_joint_by_gaussian_offset(
         q = q.clamp_(limits[..., 0], limits[..., 1])
 
         # 夹爪关节保持默认（假设为最后两个 DoF；若不是请改成显式索引）
-        if keep_last_two_as_gripper and q.shape[-1] >= 2:
+        if keep_last_two_as_gripper and q.shape[-1] >= 9:
             q[:, -2:] = q0[:, -2:]
 
         # 写入仿真 & 目标

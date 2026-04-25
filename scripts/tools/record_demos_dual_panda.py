@@ -79,6 +79,8 @@ from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManager
 from isaaclab.envs.ui import ViewportCameraController
 
 import isaaclab_tasks  # noqa: F401
+# #明确导入自定义的绑带任务以触发 gym 注册，强制使用注册的环境配置
+# import isaaclab_tasks.manager_based.manipulation.jungong.get_place_bandage.config.franka  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 from isaaclab.markers import VisualizationMarkers
 from isaaclab.markers.config import FRAME_MARKER_CFG

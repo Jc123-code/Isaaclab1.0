@@ -20,6 +20,7 @@ from . import opendrawer_joint_pos_env_cfg
 from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,)  # isort: skip
 
 
+
 @configclass
 class FrankaOpenDrawerEnvCfg(opendrawer_joint_pos_env_cfg.FrankaOpenDrawerEnvCfg):
     def __post_init__(self):
@@ -29,10 +30,40 @@ class FrankaOpenDrawerEnvCfg(opendrawer_joint_pos_env_cfg.FrankaOpenDrawerEnvCfg
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下
-        self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, -0.05, 1.6],rot=[0.707107, 0.707107, 0.0, 0.0],))#wxyz  
-        self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107, 0.0, 0.0],))#wxyz    
+        self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(
+                                prim_path="{ENV_REGEX_NS}/panda_right",
+                                init_state=ArticulationCfg.InitialStateCfg(
+                                    pos=[0, -0.05, 1.6],
+                                    rot=[0.707107, 0.707107, 0.0, 0.0],
+                                    joint_pos={
+                                        "panda_joint1": 0.0,
+                                        "panda_joint2": -0.247,
+                                        "panda_joint3": 0.35,
+                                        "panda_joint4": -2.0,
+                                        "panda_joint5": 1.5,
+                                        "panda_joint6": 1.8,
+                                        "panda_joint7": 0.4,
+                                        "panda_finger_joint1": 0.04,
+                                        "panda_finger_joint2": 0.04,
+                                    },
+                                ))#wxyz  
+        self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(
+                                prim_path="{ENV_REGEX_NS}/panda_left",
+                                init_state=ArticulationCfg.InitialStateCfg(
+                                    pos=[0, 0.05, 1.6],
+                                    rot=[0.707107, -0.707107, 0.0, 0.0],
+                                    joint_pos={
+                                        "panda_joint1": 0.0,
+                                        "panda_joint2": -0.247,
+                                        "panda_joint3": -0.35,
+                                        "panda_joint4": -2.0,
+                                        "panda_joint5": -1.13,
+                                        "panda_joint6": 1.8,
+                                        "panda_joint7": 0.4,
+                                        "panda_finger_joint1": 0.04,
+                                        "panda_finger_joint2": 0.04,
+                                    },
+                                ))#wxyz    
         
         # Set zed cameras
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下，比如这里的panda_handa坐标系下
@@ -74,4 +105,3 @@ class FrankaOpenDrawerEnvCfg(opendrawer_joint_pos_env_cfg.FrankaOpenDrawerEnvCfg
             #scale=1.0,    # 这里，如果是输入绝对动作，必须是1.0 ，或者直接删除，不能有折扣
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
-
