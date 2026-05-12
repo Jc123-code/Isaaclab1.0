@@ -46,18 +46,18 @@ gym.register(
     disable_env_checker=True,
 )
 
-# # 兼容大小写/漏版本号的调用别名
-# gym.register(
-#     id="Isaac-Get-place-bandage-Franka-Bimanual-IK-Abs",
-#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
-#     kwargs={
-#         "env_cfg_entry_point": getplace_bandage_ik_abs_env_cfg.FrankaGetPlacebandageEnvCfg,
-#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
-#         "robomimic_diffusion_policy_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/dp_unet_image.json"),
-#         "robomimic_act_cfg_entry_point": "/home/abc/IsaacLab/robomimic/robomimic/exps/templates/act.json",
-#     },
-#     disable_env_checker=True,
-# )
+# 兼容大小写/漏版本号的调用别名
+gym.register(
+    id="Isaac-Get-place-bandage-Franka-Bimanual-IK-Abs",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": getplace_bandage_ik_abs_env_cfg.FrankaGetPlacebandageEnvCfg,
+        "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),
+        "robomimic_diffusion_policy_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/dp_unet_image.json"),
+        "robomimic_act_cfg_entry_point": "/home/abc/IsaacLab/robomimic/robomimic/exps/templates/act.json",
+    },
+    disable_env_checker=True,
+)
 
 
 

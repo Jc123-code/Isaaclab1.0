@@ -1,0 +1,61 @@
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""Common functions that can be used to activate certain terminations for the lift task.
+
+The functions can be passed to the :class:`isaaclab.managers.TerminationTermCfg` object to enable
+the termination introduced by the function.
+"""
+
+from __future__ import annotations
+
+import torch
+from typing import TYPE_CHECKING
+
+from isaaclab.assets import Articulation, RigidObject
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.sensors import FrameTransformer, FrameTransformerData
+
+if TYPE_CHECKING:
+    from isaaclab.envs import ManagerBasedRLEnv
+
+
+
+def plate_success(env: ManagerBasedRLEnv, dist_threshold: float = 0.05, hold_time_s: float = 0.5):
+    drawer_tf_data: FrameTransformerData = env.scene["table_frame"].data
+    
+    # 计算各轴距离
+    dist_x = torch.norm(drawer_tf_data.target_pos_w[..., 0, [0]] - drawer_tf_data.target_pos_w[..., 1, [0]], dim=-1)
+    dist_y = torch.norm(drawer_tf_data.target_pos_w[..., 0, [1]] - drawer_tf_data.target_pos_w[..., 1, [1]], dim=-1)
+    dist_z = torch.norm(drawer_tf_data.target_pos_w[..., 0, [2]] - drawer_tf_data.target_pos_w[..., 1, [2]], dim=-1)
+    
+    # 三个条件
+    x_condition = dist_x < (0.05)
+    y_condition = dist_y < (dist_threshold )
+    z_condition = dist_z <= 0.05
+    # print(f"{dist_z}")
+    # 组合条件
+    success_raw = x_condition & y_condition & z_condition
+
+    # 初始化并维护 hold 计时器
+    if not hasattr(env, "_plate_stack_hold_time"):
+        env._plate_stack_hold_time = torch.zeros(env.scene.num_envs, device=env.device)
+
+    # 每回合起始重置计时器
+    reset_mask = env.episode_length_buf == 0
+    if torch.any(reset_mask):
+        env._plate_stack_hold_time[reset_mask] = 0.0
+
+    # 连续满足条件才累加时间，不满足则清零
+    env._plate_stack_hold_time = torch.where(
+        success_raw,
+        env._plate_stack_hold_time + env.step_dt,
+        torch.zeros_like(env._plate_stack_hold_time),
+    )
+
+    success = env._plate_stack_hold_time >= hold_time_s
+    return success
+
+

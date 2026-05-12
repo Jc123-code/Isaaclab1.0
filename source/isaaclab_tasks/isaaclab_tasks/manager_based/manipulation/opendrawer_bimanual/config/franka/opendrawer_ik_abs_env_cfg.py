@@ -17,8 +17,9 @@ from . import opendrawer_joint_pos_env_cfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,)  # isort: skip
-
+from tacex_assets.robots.franka import (  # isort: skip
+    FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG,
+)
 
 
 @configclass
@@ -30,7 +31,7 @@ class FrankaOpenDrawerEnvCfg(opendrawer_joint_pos_env_cfg.FrankaOpenDrawerEnvCfg
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下
-        self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(
+        self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
                                 prim_path="{ENV_REGEX_NS}/panda_right",
                                 init_state=ArticulationCfg.InitialStateCfg(
                                     pos=[0, -0.05, 1.6],
@@ -47,7 +48,7 @@ class FrankaOpenDrawerEnvCfg(opendrawer_joint_pos_env_cfg.FrankaOpenDrawerEnvCfg
                                         "panda_finger_joint2": 0.04,
                                     },
                                 ))#wxyz  
-        self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(
+        self.scene.robot_left = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
                                 prim_path="{ENV_REGEX_NS}/panda_left",
                                 init_state=ArticulationCfg.InitialStateCfg(
                                     pos=[0, 0.05, 1.6],

@@ -97,12 +97,12 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     bullet_762 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/bullet_762",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.43369, 0.59463, 1.03902),
+            pos=(0.41769, 0.3, 1.03902),
             rot=(0.62295, 0.44857, -0.55794, -0.3153)
         ),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/7.62_Bullet/7.62_Bullet.usdc",
-            scale=(0.25, 0.25, 0.25),
+            scale=(0.25, 0.25, 0.15),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=False,
                 kinematic_enabled=False,
@@ -117,10 +117,54 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         ),
     )
 
+    bullet_762_2 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/bullet_762_2",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.41769, 0.37, 1.03902),
+            rot=(0.62295, 0.44857, -0.55794, -0.3153)
+        ),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/7.62_Bullet/7.62_Bullet.usdc",
+            scale=(0.25, 0.25, 0.15),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=False,
+                kinematic_enabled=False,
+            ),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(
+                mass=0.05,
+            ),
+        ),
+    )
+
+    bullet_762_3 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/bullet_762_3",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.41769, 0.44, 1.03902),
+            rot=(0.62295, 0.44857, -0.55794, -0.3153)
+        ),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/7.62_Bullet/7.62_Bullet.usdc",
+            scale=(0.25, 0.25, 0.15),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=False,
+                kinematic_enabled=False,
+            ),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(
+                mass=0.05,
+            ),
+        ),
+    )
+
     bullet_9 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/bullet_9",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.49526, 0.4861, 1.04247),
+            pos=(0.43, 0.6, 1.04247),
             rot=(0.54294, -0.54546, -0.45562, -0.44787)
         ),
         spawn=sim_utils.UsdFileCfg(
@@ -140,10 +184,54 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         ),
     )
 
+    bullet_9_2 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/bullet_9_2",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.47, 0.6, 1.04247),
+            rot=(0.54294, -0.54546, -0.45562, -0.44787)
+        ),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/9_Bullet/9_Bullet.usdc",
+            scale=(1, 1, 1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=False,
+                kinematic_enabled=False,
+            ),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(
+                mass=0.05,
+            ),
+        ),
+    )
+
+    bullet_9_3 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/bullet_9_3",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.51, 0.6, 1.04247),
+            rot=(0.54294, -0.54546, -0.45562, -0.44787)
+        ),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/9_Bullet/9_Bullet.usdc",
+            scale=(1, 1, 1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=False,
+                kinematic_enabled=False,
+            ),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(
+                mass=0.05,
+            ),
+        ),
+    )
+
     Ammunition_Box = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Ammunition_Box",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.61579, 0.33933, 1.08444),
+            pos=(0.65, 0.53933, 1.08444),
             rot=(0.0202, 0.025, 0.70715,0.70633)
         ),
         spawn=sim_utils.UsdFileCfg(
@@ -156,10 +244,31 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(
                 collision_enabled=True,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(  # ✅ 添加质量属性
+            mass_props=sim_utils.MassPropertiesCfg(
                 mass=0.05,
             ),
+        ),
+    )
 
+    Ammunition_Box_762 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/Ammunition_Box_762",
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.65, 0.25, 1.08444),
+            rot=(0.0202, 0.025, 0.70715,0.70633)
+        ),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/Ammunition_Box/Ammunition_Box.usdc",
+            scale=(1, 1, 1),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=False,
+                kinematic_enabled=False,
+            ),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(
+                mass=0.05,
+            ),
         ),
     )
 
@@ -343,8 +452,8 @@ class TerminationsCfg:
     success = DoneTerm(
         func=mdp.sorting_bullets_success,
         params={
-            "box_local_min": (-0.07, -0.05, -0.03),
-            "box_local_max": (0.07, 0.05, 0.06),
+            "box_local_min": (-0.12, -0.08, -0.12),
+            "box_local_max": (0.12, 0.08, 0.14),
             "wait_time": 0.5,
         },
     )

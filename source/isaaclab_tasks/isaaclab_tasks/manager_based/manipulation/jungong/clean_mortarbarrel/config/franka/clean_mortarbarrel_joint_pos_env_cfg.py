@@ -2,6 +2,7 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+import math
 import torch
 import isaaclab.sim as sim_utils
 
@@ -20,7 +21,10 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from isaaclab_tasks.manager_based.manipulation.jungong.clean_mortarbarrel import mdp
 from isaaclab_tasks.manager_based.manipulation.jungong.clean_mortarbarrel.mdp import franka_clean_mortarbarrel_events
-from isaaclab_tasks.manager_based.manipulation.jungong.clean_mortarbarrel.clean_mortarbarrel_env_cfg import CleanmortarbarrelEnvCfg
+from isaaclab_tasks.manager_based.manipulation.jungong.clean_mortarbarrel.clean_mortarbarrel_env_cfg import (
+    MORTAR_DEFAULT_ROOT_STATE,
+    CleanmortarbarrelEnvCfg,
+)
 
 
 ##
@@ -65,13 +69,17 @@ class EventCfg:
     )
 
     reset_mortar_pose = EventTerm(
-        func=franka_clean_mortarbarrel_events.reset_pose_to_default,
+        func=franka_clean_mortarbarrel_events.reset_pose_randomize_in_xy_ellipse,
         mode="reset",
         params={
-            "default_pose": torch.tensor([
-                1.08427, -0.3658, 1.073347, 0.69901, 0.7005, 0.10065, 0.10276,
-                0, 0, 0, 0, 0, 0              # 静止
-            ], device="cuda"),
+            "default_pose": torch.tensor(MORTAR_DEFAULT_ROOT_STATE, device="cuda"),
+            "x_radius": 0.04,
+            "y_radius": 0.04,
+            "roll_range": (-math.radians(5.0), math.radians(5.0)),
+            "pitch_range": (-math.radians(5.0), math.radians(5.0)),
+            "yaw_range": (-math.radians(10.0), math.radians(10.0)),
+            "parent_asset_cfg": SceneEntityCfg("table"),
+            "joint_name": "mortar_weld_joint",
             "asset_cfg": [SceneEntityCfg("mortar")],
         },
     )
@@ -81,7 +89,7 @@ class EventCfg:
         mode="reset",
         params={
             "default_pose": torch.tensor([
-                0.40672, -0.57683, 1.04728, 0.7, 0.61073, 0.26174, 0.26174,   
+                0.40672, -0.57683, 0.94242, 0.7, 0.61073, 0.26174, 0.26174,   
                 0, 0, 0, 0, 0, 0              # 静止
             ], device="cuda"),
             "asset_cfg": [SceneEntityCfg("bursh")],

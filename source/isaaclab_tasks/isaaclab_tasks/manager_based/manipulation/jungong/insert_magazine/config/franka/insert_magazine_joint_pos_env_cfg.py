@@ -65,25 +65,29 @@ class EventCfg:
     )
 
     reset_tactical_vest_pose = EventTerm(
-        func=franka_insert_magazine_events.reset_pose_to_default,
+        func=franka_insert_magazine_events.reset_pose_to_default_with_randomized_y,
         mode="reset",
         params={
             "default_pose": torch.tensor([
                 0.71351, -0.41501, 1.15013, 0.62295, 0.44857, -0.55794, -0.3153,
                 0, 0, 0, 0, 0, 0              # 静止
             ], device="cuda"),
+            # "y_range": (-0.46501, -0.36501),
+            "y_range": (-0.9501, -0.16501),
             "asset_cfg": [SceneEntityCfg("tactical_vest")],
         },
     )
 
     reset_magazine_pose = EventTerm(
-        func=franka_insert_magazine_events.reset_pose_to_default,
+        func=franka_insert_magazine_events.reset_pose_to_default_with_randomized_y,
         mode="reset",
         params={
             "default_pose": torch.tensor([
                 0.41814, -0.6138, 1.05094, 0.54294, -0.54546, -0.45562, -0.44787,
                 0, 0, 0, 0, 0, 0              # 静止
             ], device="cuda"),
+            "y_range": (-0.63, -0.4638),
+            "yaw_range_deg": (-15.0, 15.0),
             "asset_cfg": [SceneEntityCfg("magazine")],
         },
     )

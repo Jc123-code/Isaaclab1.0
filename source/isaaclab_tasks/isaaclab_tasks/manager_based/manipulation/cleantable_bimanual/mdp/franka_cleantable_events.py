@@ -74,6 +74,13 @@ def reset_to_default_joint_pose(
     """
     """
     cfgs = _as_seq(asset_cfg)
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.long)
+    elif not isinstance(env_ids, torch.Tensor):
+        env_ids = torch.tensor(env_ids, device=env.device, dtype=torch.long)
+    else:
+        env_ids = env_ids.to(device=env.device, dtype=torch.long)
+    num_reset = env_ids.numel()
 
     if default_pose is not None:
         poses = _as_seq(default_pose)
@@ -94,14 +101,21 @@ def reset_to_default_joint_pose(
                     stacklevel=2,
                 )
             assert pose.shape[-1] == dof
-            asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+            joint_pos = pose.repeat(num_reset, 1)
+            joint_vel = torch.zeros_like(joint_pos)
+            asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
+            asset.set_joint_position_target(joint_pos, env_ids=env_ids)
+            asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
     else:
         for cfg  in cfgs:
             asset: Articulation = env.scene[cfg.name]
-            pose = asset.data.default_joint_pos  # (1, DoF)
+            pose = asset.data.default_joint_pos[env_ids].clone()
             dof = asset.data.default_joint_pos.shape[-1]
             assert pose.shape[-1] == dof 
-            asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+            joint_vel = torch.zeros_like(pose)
+            asset.write_joint_state_to_sim(pose, joint_vel, env_ids=env_ids)
+            asset.set_joint_position_target(pose, env_ids=env_ids)
+            asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
 
 def randomize_joint_by_gaussian_offset(
     env: ManagerBasedEnv,
@@ -116,17 +130,23 @@ def randomize_joint_by_gaussian_offset(
         * q := default_joint_pos[env_ids] + N(mean, std)
         * clamp 到 soft_joint_pos_limits
         * 可选：最后两个关节（通常是 gripper）不加噪声
-        * 速度用 default_joint_vel[env_ids]
+        * 速度强制清零，避免 reset 后残留关节速度
         * 同步 set_position/velocity_target + write_joint_state_to_sim
     """
     cfgs = _as_seq(asset_cfg)
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.long)
+    elif not isinstance(env_ids, torch.Tensor):
+        env_ids = torch.tensor(env_ids, device=env.device, dtype=torch.long)
+    else:
+        env_ids = env_ids.to(device=env.device, dtype=torch.long)
 
     for cfg in cfgs:
         asset: Articulation = env.scene[cfg.name]
 
         # 取默认值
         q0 = asset.data.default_joint_pos[env_ids].clone()          # (E, DoF)
-        qd0 = asset.data.default_joint_vel[env_ids].clone()         # (E, DoF)
+        qd0 = torch.zeros_like(q0)
 
         # 加噪
         noise = math_utils.sample_gaussian(mean, std, q0.shape, q0.device)
@@ -280,6 +300,5 @@ def randomize_object_pose(
             asset.write_root_velocity_to_sim(
                 torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
-
 
 

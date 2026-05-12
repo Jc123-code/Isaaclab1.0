@@ -22,6 +22,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.frame_transformer import OffsetCfg
 
 from . import mdp
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg
 
 
 ##
@@ -46,6 +47,11 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     wrist_cam_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
+    # GelSight Mini tactile sensors (will be populated by agent env cfg)
+    gsmini_left_left: GelSightMiniCfg | None = None
+    gsmini_left_right: GelSightMiniCfg | None = None
+    gsmini_right_left: GelSightMiniCfg | None = None
+    gsmini_right_right: GelSightMiniCfg | None = None
 
 
     # Table
@@ -60,9 +66,8 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             joint_pos={
                 "door_left_joint": 0.0,
                 "door_right_joint": 0.0,
-                "drawer_left_joint": -1,
+                "drawer_left_joint": -0.3,
                 "drawer_right_joint": -0.3,
-                # "door_handle_joint": 0.0,
             },
         ),
         # 设置内部关节限制
@@ -82,14 +87,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                 stiffness=10.0,
                 damping=10.5,
             ),
-            #         # 添加门把手的actuator配置
-            # "door_handle": ImplicitActuatorCfg(
-            #     joint_names_expr=["door_handle_joint"],  # 替换为你的关节名称
-            #     effort_limit=50.0,  # 根据需要调整
-            #     velocity_limit=100.0,
-            #     stiffness=50.0,  # 门把手通常需要较小的刚度
-            #     damping=50.0,
-            # ),
         },
     )
 
@@ -215,7 +212,25 @@ class ObservationsCfg:
         table_cam = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
         )
-        
+                
+        # Tactile observations for dataset recording (saved under obs/policy in hdf5).
+        gsmini_left_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_right_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_left_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "marker_motion", "normalize": False},
+        )
+        gsmini_right_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "marker_motion", "normalize": False},
+        )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -300,4 +315,3 @@ class OpenDrawerEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
         self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
         self.sim.physx.friction_correlation_distance = 0.00625
-

@@ -14,9 +14,9 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from isaaclab.assets import Articulation, RigidObject
-from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import FrameTransformer, FrameTransformerData
+import isaaclab.utils.math as math_utils
+from isaaclab.assets import RigidObject
+from isaaclab.sensors import FrameTransformerData
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -24,13 +24,27 @@ if TYPE_CHECKING:
 
 def clean_mortarbarrel_success(
     env: ManagerBasedRLEnv,
-    sphere_center: tuple[float, float, float] = (0.62295, -0.50855, 1.3843),
+    default_mortar_pose: tuple[float, ...] = (0.97829, -0.3658, 1.02122, 0.69901, 0.7005, 0.10065, 0.10276),
+    success_center_w: tuple[float, float, float] = (0.65053, -0.46199, 1.24521),
     sphere_radius: float = 0.05,
 ) -> torch.Tensor:
     drawer_tf_data: FrameTransformerData = env.scene["table_frame"].data
     bursh_pos_w = drawer_tf_data.target_pos_w[..., 0, :]
+    mortar: RigidObject = env.scene["mortar"]
+    mortar_root_state_w = mortar.data.root_state_w[: bursh_pos_w.shape[0]]
 
-    center = torch.tensor(sphere_center, device=bursh_pos_w.device, dtype=bursh_pos_w.dtype)
+    default_mortar_pose_tensor = torch.tensor(default_mortar_pose[:7], device=bursh_pos_w.device, dtype=bursh_pos_w.dtype)
+    default_mortar_pos = default_mortar_pose_tensor[:3]
+    default_mortar_quat = default_mortar_pose_tensor[3:7].unsqueeze(0)
+    success_center_w_tensor = torch.tensor(success_center_w, device=bursh_pos_w.device, dtype=bursh_pos_w.dtype)
+    success_center_local = math_utils.quat_rotate_inverse(
+        default_mortar_quat, (success_center_w_tensor - default_mortar_pos).unsqueeze(0)
+    ).squeeze(0)
+
+    center = mortar_root_state_w[:, :3] + math_utils.quat_rotate(
+        mortar_root_state_w[:, 3:7],
+        success_center_local.unsqueeze(0).expand(bursh_pos_w.shape[0], -1),
+    )
     dist_to_center = torch.linalg.vector_norm(bursh_pos_w - center, dim=-1)
     inside_sphere = dist_to_center <= sphere_radius
 

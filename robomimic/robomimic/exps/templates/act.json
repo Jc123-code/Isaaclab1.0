@@ -12,7 +12,7 @@
         "save": {
             "enabled": true,
             "every_n_seconds": null,
-            "every_n_epochs": 40,
+            "every_n_epochs": 50,
             "epochs": [],
             "on_best_validation": false,
             "on_best_rollout_return": false,
@@ -37,7 +37,7 @@
     },
     "train": {
         "data": null,
-        "output_dir":"../act_trained_models",
+        "output_dir": "../act_trained_models",
         "num_data_workers": 2,
         "hdf5_cache_mode": "low_dim",
         "hdf5_use_swmr": true,
@@ -53,7 +53,7 @@
         ],
         "goal_mode": null,
         "cuda": true,
-        "batch_size": 32,
+        "batch_size": 8,
         "num_epochs": 10000,
         "seed": 1
     },
@@ -62,7 +62,7 @@
             "policy": {
                 "optimizer_type": "adamw",
                 "learning_rate": {
-                    "initial": 0.00005,
+                    "initial": 5e-05,
                     "decay_factor": 1,
                     "epoch_schedule": [
                         100
@@ -81,14 +81,14 @@
         },
         "ACT": {
             "enabled": true,
-            "hidden_dim": 512,
-            "dim_feedforward": 3200,
+            "hidden_dim": 256,
+            "dim_feedforward": 1024,
             "backbone": "resnet18",
-            "enc_layers": 4,
-            "dec_layers": 7,
-            "nheads": 8,
-            "latent_dim": 32,
-            "kl_weight": 20
+            "enc_layers": 2,
+            "dec_layers": 4,
+            "nheads": 4,
+            "latent_dim": 16,
+            "kl_weight": 5
         }
     },
     "observation": {
@@ -101,13 +101,13 @@
                     "eef_pos_right_b",
                     "eef_quat_right_b",
                     "gripper_right_pos",
-                    "joint_pos_left", 
+                    "joint_pos_left",
                     "joint_pos_left_rel",
-                    "joint_pos_right", 
+                    "joint_pos_right",
                     "joint_pos_right_rel",
-                    "joint_vel_left_rel", 
+                    "joint_vel_left_rel",
                     "joint_vel_right_rel"
-
+                    
                 ],
                 "rgb": [
                     "zed_left",
@@ -151,8 +151,8 @@
                 },
                 "obs_randomizer_class": "CropRandomizer",
                 "obs_randomizer_kwargs": {
-                    "crop_height": 76,
-                    "crop_width": 76,
+                    "crop_height": 160,
+                    "crop_width": 160,
                     "num_crops": 1,
                     "pos_enc": false
                 }

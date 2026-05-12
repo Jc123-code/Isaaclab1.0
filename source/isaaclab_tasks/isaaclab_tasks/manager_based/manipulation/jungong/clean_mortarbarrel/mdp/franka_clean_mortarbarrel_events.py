@@ -280,6 +280,123 @@ def reset_pose_to_default(env, env_ids, default_pose, asset_cfg):
         print(f"[Reset] object '{cfg.name}' reset for env_ids={env_ids.tolist()} to {pose[0, :7].cpu().numpy()}.")
 
 
+def reset_pose_randomize_in_xy_ellipse(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    default_pose: Union[torch.Tensor, Sequence[torch.Tensor]],
+    asset_cfg: Union[SceneEntityCfg, Sequence[SceneEntityCfg]],
+    x_radius: float = 0.04,
+    y_radius: float = 0.04,
+    roll_range: tuple[float, float] = (0.0, 0.0),
+    pitch_range: tuple[float, float] = (0.0, 0.0),
+    yaw_range: tuple[float, float] = (0.0, 0.0),
+    parent_asset_cfg: SceneEntityCfg | None = None,
+    joint_name: str | None = None,
+):
+    """Reset object pose with slight XY and orientation randomization.
+
+    If the object is welded to another asset through a fixed joint, pass the parent asset config and
+    joint name so the joint frame is updated to the new randomized pose as well.
+    """
+
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.long)
+    elif not isinstance(env_ids, torch.Tensor):
+        env_ids = torch.tensor(env_ids, device=env.device, dtype=torch.long)
+    else:
+        env_ids = env_ids.to(device=env.device, dtype=torch.long)
+
+    poses = _as_seq(default_pose)
+    cfgs = _as_seq(asset_cfg)
+    num_envs = env_ids.numel()
+
+    for i, cfg in enumerate(cfgs):
+        asset = env.scene[cfg.name]
+        pose = torch.as_tensor(poses[min(i, len(poses) - 1)], device=env.device)
+
+        if pose.ndim == 1:
+            pose = pose.unsqueeze(0)
+
+        if pose.shape[-1] == 7:
+            pose = torch.cat([pose, torch.zeros((pose.shape[0], 6), device=env.device)], dim=-1)
+        elif pose.shape[-1] != 13:
+            raise ValueError(f"default_pose must have 7 or 13 values, but got shape {pose.shape}.")
+
+        if pose.shape[0] == 1:
+            root_state = pose.repeat(num_envs, 1)
+        elif pose.shape[0] == num_envs:
+            root_state = pose.clone()
+        else:
+            raise ValueError(f"default_pose shape {pose.shape} incompatible with env_ids length {num_envs}.")
+
+        theta = 2.0 * math.pi * torch.rand(num_envs, device=env.device)
+        radius_scale = torch.sqrt(torch.rand(num_envs, device=env.device))
+        root_state[:, 0] += x_radius * radius_scale * torch.cos(theta)
+        root_state[:, 1] += y_radius * radius_scale * torch.sin(theta)
+
+        roll = torch.empty(num_envs, device=env.device).uniform_(roll_range[0], roll_range[1])
+        pitch = torch.empty(num_envs, device=env.device).uniform_(pitch_range[0], pitch_range[1])
+        yaw = torch.empty(num_envs, device=env.device).uniform_(yaw_range[0], yaw_range[1])
+        delta_quat = math_utils.quat_from_euler_xyz(roll, pitch, yaw)
+        root_state[:, 3:7] = math_utils.quat_mul(delta_quat, root_state[:, 3:7])
+        root_state[:, 7:13] = 0.0
+
+        asset.write_root_state_to_sim(root_state, env_ids=env_ids)
+        asset._data.root_state_w[env_ids] = root_state.clone()
+
+        if parent_asset_cfg is not None and joint_name is not None:
+            _update_fixed_joint_pose_for_reset(
+                env=env,
+                env_ids=env_ids,
+                parent_asset_cfg=parent_asset_cfg,
+                child_asset_cfg=cfg,
+                joint_name=joint_name,
+                child_root_state=root_state,
+            )
+
+
+def _update_fixed_joint_pose_for_reset(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    parent_asset_cfg: SceneEntityCfg,
+    child_asset_cfg: SceneEntityCfg,
+    joint_name: str,
+    child_root_state: torch.Tensor,
+):
+    """Update a fixed joint's local frame so it matches the child's newly reset pose."""
+
+    stage = omni.usd.get_context().get_stage()
+    parent_asset = env.scene[parent_asset_cfg.name]
+    child_asset = env.scene[child_asset_cfg.name]
+
+    child_paths = list(child_asset.root_physx_view.prim_paths[: child_asset.num_instances])
+    parent_root_state = parent_asset.data.root_state_w[env_ids]
+    rel_pos = math_utils.quat_rotate_inverse(
+        parent_root_state[:, 3:7], child_root_state[:, :3] - parent_root_state[:, :3]
+    )
+    rel_quat = math_utils.quat_mul(math_utils.quat_conjugate(parent_root_state[:, 3:7]), child_root_state[:, 3:7])
+
+    for local_idx, env_id in enumerate(env_ids.detach().cpu().tolist()):
+        fixed_joint_path = f"{child_paths[env_id]}/{joint_name}"
+        joint_prim = stage.GetPrimAtPath(fixed_joint_path)
+        if not joint_prim.IsValid():
+            warnings.warn(
+                f"[reset_pose_randomize_in_xy_ellipse] Fixed joint not found at: {fixed_joint_path}",
+                stacklevel=2,
+            )
+            continue
+
+        joint = UsdPhysics.FixedJoint(joint_prim)
+        rel_pos_i = rel_pos[local_idx]
+        rel_quat_i = rel_quat[local_idx]
+        joint.CreateLocalPos0Attr().Set(Gf.Vec3f(float(rel_pos_i[0]), float(rel_pos_i[1]), float(rel_pos_i[2])))
+        joint.CreateLocalRot0Attr().Set(
+            Gf.Quatf(float(rel_quat_i[0]), float(rel_quat_i[1]), float(rel_quat_i[2]), float(rel_quat_i[3]))
+        )
+        joint.CreateLocalPos1Attr().Set(Gf.Vec3f(0.0, 0.0, 0.0))
+        joint.CreateLocalRot1Attr().Set(Gf.Quatf(1.0, 0.0, 0.0, 0.0))
+
+
 def randomize_scene_lighting_domelight(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
@@ -359,5 +476,3 @@ def randomize_object_pose(
             asset.write_root_velocity_to_sim(
                 torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
-
-

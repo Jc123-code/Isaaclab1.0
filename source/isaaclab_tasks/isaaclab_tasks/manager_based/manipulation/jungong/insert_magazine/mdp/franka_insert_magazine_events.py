@@ -280,6 +280,51 @@ def reset_pose_to_default(env, env_ids, default_pose, asset_cfg):
         print(f"[Reset] object '{cfg.name}' reset for env_ids={env_ids.tolist()} to {pose[0, :7].cpu().numpy()}.")
 
 
+def reset_pose_to_default_with_randomized_y(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    default_pose: torch.Tensor,
+    y_range: tuple[float, float],
+    asset_cfg: list[SceneEntityCfg],
+    yaw_range_deg: tuple[float, float] | None = None,
+):
+    """Reset rigid objects to the given default pose while randomizing local y and optional yaw."""
+
+    if env_ids is None or len(env_ids) == 0:
+        return
+
+    if not isinstance(default_pose, torch.Tensor):
+        raise TypeError("default_pose must be a torch.Tensor.")
+
+    pose = torch.as_tensor(default_pose, device=env.device).view(1, -1)
+    if pose.shape[-1] == 7:
+        pose = torch.cat([pose, torch.zeros((1, 6), device=env.device)], dim=-1)
+    if pose.shape[-1] != 13:
+        raise ValueError(f"default_pose must have 7 or 13 values, got {pose.shape[-1]}.")
+
+    num_envs = len(env_ids)
+    root_state = pose.repeat(num_envs, 1)
+    root_state[:, 1] = torch.rand(num_envs, device=env.device) * (y_range[1] - y_range[0]) + y_range[0]
+
+    if yaw_range_deg is not None:
+        yaw_min = math.radians(yaw_range_deg[0])
+        yaw_max = math.radians(yaw_range_deg[1])
+        yaw_offset = torch.rand(num_envs, device=env.device) * (yaw_max - yaw_min) + yaw_min
+        yaw_quat = math_utils.quat_from_euler_xyz(
+            torch.zeros(num_envs, device=env.device),
+            torch.zeros(num_envs, device=env.device),
+            yaw_offset,
+        )
+        root_state[:, 3:7] = math_utils.quat_mul(yaw_quat, root_state[:, 3:7])
+
+    root_state[:, 0:3] += env.scene.env_origins[env_ids, 0:3]
+
+    for cfg in asset_cfg:
+        asset = env.scene[cfg.name]
+        asset.write_root_state_to_sim(root_state, env_ids=env_ids)
+        asset._data.root_state_w[env_ids] = root_state.clone()
+
+
 def randomize_scene_lighting_domelight(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
@@ -359,5 +404,3 @@ def randomize_object_pose(
             asset.write_root_velocity_to_sim(
                 torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
-
-

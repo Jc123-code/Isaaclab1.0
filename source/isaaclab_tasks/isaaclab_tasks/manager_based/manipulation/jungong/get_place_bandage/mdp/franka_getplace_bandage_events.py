@@ -200,7 +200,46 @@ def reset_pose_to_default(env, env_ids, default_pose, asset_cfg):
 
         print(f"[Reset] object '{cfg.name}' reset for env_ids={env_ids.tolist()} to {pose[0, :7].cpu().numpy()}.")
 
+def reset_bandage_pose_to_default(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    pose_range: dict[str, tuple[float, float]],
+    fixed_quat: torch.Tensor,
+    asset_cfg: list[SceneEntityCfg],
+):
+    """Reset the bandage rigid object to a randomized pose and zero velocity."""
 
+    if env_ids is None or len(env_ids) == 0:
+        return
+
+    asset = env.scene[asset_cfg[0].name]
+    num_envs = len(env_ids)
+
+    # 随机生成位置
+    positions = torch.zeros((num_envs, 3), device=env.device)
+    positions[:, 0] = torch.rand(num_envs, device=env.device) * (pose_range["x"][1] - pose_range["x"][0]) + pose_range["x"][0]
+    positions[:, 1] = torch.rand(num_envs, device=env.device) * (pose_range["y"][1] - pose_range["y"][0]) + pose_range["y"][0]
+    positions[:, 2] = torch.rand(num_envs, device=env.device) * (pose_range["z"][1] - pose_range["z"][0]) + pose_range["z"][0]
+
+    # 加上环境原点偏移
+    positions += env.scene.env_origins[env_ids, 0:3]
+
+    # 使用固定四元数，扩展到每个环境
+    orientations = fixed_quat.to(env.device).unsqueeze(0).repeat(num_envs, 1)
+
+    # 写入位置和姿态
+    root_pose = torch.cat([positions, orientations], dim=-1)
+    asset.write_root_pose_to_sim(root_pose, env_ids=env_ids)
+
+    # 写入零速度
+    asset.write_root_velocity_to_sim(
+        torch.zeros(num_envs, 6, device=env.device),
+        env_ids=env_ids
+    )
+
+    print(f"[Reset] Bandage pose randomized for env_ids={env_ids.tolist()}")
+
+    
 def randomize_scene_lighting_domelight(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,

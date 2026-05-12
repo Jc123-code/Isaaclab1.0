@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 def rightdrawer_opened(
     env: ManagerBasedRLEnv,
-    dist_threshold: float = 0.7,
+    dist_threshold: float = 0.6,
 ):
     drawer_tf_data: FrameTransformerData = env.scene["table_frame"].data
     # 查看偏差

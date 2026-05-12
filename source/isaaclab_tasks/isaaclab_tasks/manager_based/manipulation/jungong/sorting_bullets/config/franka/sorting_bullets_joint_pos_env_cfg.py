@@ -68,11 +68,21 @@ class EventCfg:
         func=franka_sorting_bullets_events.reset_pose_to_default,
         mode="reset",
         params={
-            "default_pose": torch.tensor([
-                0.43369, 0.59463, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
-                0, 0, 0, 0, 0, 0              # 静止
-            ], device="cuda"),
-            "asset_cfg": [SceneEntityCfg("bullet_762")],
+            "default_pose": [
+                torch.tensor([
+                    0.41769, 0.3, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+                torch.tensor([
+                    0.41769, 0.37, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+                torch.tensor([
+                    0.41769, 0.44, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+            ],
+            "asset_cfg": [SceneEntityCfg("bullet_762"), SceneEntityCfg("bullet_762_2"), SceneEntityCfg("bullet_762_3")],
         },
     )
 
@@ -80,11 +90,21 @@ class EventCfg:
         func=franka_sorting_bullets_events.reset_pose_to_default,
         mode="reset",
         params={
-            "default_pose": torch.tensor([
-                0.49526, 0.4861, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
-                0, 0, 0, 0, 0, 0              # 静止
-            ], device="cuda"),
-            "asset_cfg": [SceneEntityCfg("bullet_9")],
+            "default_pose": [
+                torch.tensor([
+                    0.43, 0.6, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+                torch.tensor([
+                    0.47, 0.6, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+                torch.tensor([
+                    0.51, 0.6, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+            ],
+            "asset_cfg": [SceneEntityCfg("bullet_9"), SceneEntityCfg("bullet_9_2"), SceneEntityCfg("bullet_9_3")],
         },
     )
 
@@ -92,11 +112,17 @@ class EventCfg:
         func=franka_sorting_bullets_events.reset_pose_to_default,
         mode="reset",
         params={
-            "default_pose": torch.tensor([
-                0.61579, 0.33933, 1.08444,0.0202, 0.025, 0.70715,0.70633,
-                0, 0, 0, 0, 0, 0              # 静止
-            ], device="cuda"),
-            "asset_cfg": [SceneEntityCfg("Ammunition_Box")],
+            "default_pose": [
+                torch.tensor([
+                    0.65, 0.53933, 1.08444, 0.0202, 0.025, 0.70715, 0.70633,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+                torch.tensor([
+                    0.65, 0.25, 1.08444, 0.0202, 0.025, 0.70715, 0.70633,
+                    0, 0, 0, 0, 0, 0
+                ], device="cuda"),
+            ],
+            "asset_cfg": [SceneEntityCfg("Ammunition_Box"), SceneEntityCfg("Ammunition_Box_762")],
         },
     )
 

@@ -28,6 +28,13 @@ from isaaclab.sensors.frame_transformer import OffsetCfg
 from . import mdp
 
 
+MORTAR_DEFAULT_POS = (0.97829, -0.3658, 1.02122)
+MORTAR_DEFAULT_ROT = (0.69901, 0.7005, 0.10065, 0.10276)
+MORTAR_DEFAULT_POSE = MORTAR_DEFAULT_POS + MORTAR_DEFAULT_ROT
+MORTAR_DEFAULT_ROOT_STATE = MORTAR_DEFAULT_POSE + (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+MORTAR_SUCCESS_CENTER_W = (0.65053, -0.46199, 1.24521)
+
+
 ##
 # Scene definition
 ##
@@ -60,7 +67,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                          scale=(0.5, 0.5, 0.5)),
         # 设置初始状态
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.5, 0.0, 0),
+            pos=(0.5, 0.0, -0.1),
             rot=(0.707, 0.0, 0.0, -0.707),
             # 桌子没有关节，避免正则匹配失败，显式给空关节状态
             joint_pos={},
@@ -97,15 +104,15 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     mortar = RigidObjectCfg(
         prim_path="/World/mortar",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(1.08427, -0.3658, 1.073347),
-            rot=(0.69901, 0.7005, 0.10065, 0.10276)
+            pos=MORTAR_DEFAULT_POS,
+            rot=MORTAR_DEFAULT_ROT,
         ),
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/clean_mortarbarrel/mortar/mortar.usdc",
-            scale=(0.35, 0.35, 0.35),
+            scale=(0.25, 0.25, 0.25),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                kinematic_enabled=False,
+                disable_gravity=True,
+                kinematic_enabled=True,
             ),
             collision_props=sim_utils.CollisionPropertiesCfg(
                 collision_enabled=True,
@@ -120,7 +127,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     bursh = RigidObjectCfg(
         prim_path="/World/bursh",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.40672, -0.57683, 1.04728),
+            pos=(0.40672, -0.57683, 0.94242),
             rot=(0.7, 0.61073, 0.26174, 0.26174)
         ),
         spawn=sim_utils.UsdFileCfg(
@@ -345,7 +352,13 @@ class ObservationsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    success = DoneTerm(func=mdp.clean_mortarbarrel_success)
+    success = DoneTerm(
+        func=mdp.clean_mortarbarrel_success,
+        params={
+            "default_mortar_pose": MORTAR_DEFAULT_POSE,
+            "success_center_w": MORTAR_SUCCESS_CENTER_W,
+        },
+    )
 
 
 @configclass
