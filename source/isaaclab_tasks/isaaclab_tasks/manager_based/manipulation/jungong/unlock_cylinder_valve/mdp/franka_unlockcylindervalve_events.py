@@ -25,6 +25,16 @@ def _as_seq(x):
     return (x,) if not isinstance(x, (list, tuple)) else x
 
 
+def _resolve_env_ids(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> torch.Tensor:
+    if env_ids is None:
+        return torch.arange(env.num_envs, device=env.device, dtype=torch.long)
+    if isinstance(env_ids, slice):
+        return torch.arange(env.num_envs, device=env.device, dtype=torch.long)[env_ids]
+    if not isinstance(env_ids, torch.Tensor):
+        return torch.as_tensor(env_ids, device=env.device, dtype=torch.long)
+    return env_ids.to(device=env.device, dtype=torch.long)
+
+
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,
@@ -61,6 +71,7 @@ def reset_to_default_joint_pose(
     """
     """
     cfgs = _as_seq(asset_cfg)
+    env_ids = _resolve_env_ids(env, env_ids)
 
     if default_pose is not None:
         poses = _as_seq(default_pose)
@@ -69,14 +80,21 @@ def reset_to_default_joint_pose(
             pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
             dof = asset.data.default_joint_pos.shape[-1]
             assert pose.shape[-1] == dof 
-            asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+            joint_pos = pose.repeat(env_ids.numel(), 1)
+            joint_vel = asset.data.default_joint_vel[env_ids].clone()
+            asset.set_joint_position_target(joint_pos, env_ids=env_ids)
+            asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
+            asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
     else:
         for cfg  in cfgs:
             asset: Articulation = env.scene[cfg.name]
-            pose = asset.data.default_joint_pos  # (1, DoF)
+            pose = asset.data.default_joint_pos[env_ids].clone()
             dof = asset.data.default_joint_pos.shape[-1]
             assert pose.shape[-1] == dof 
-            asset.write_joint_position_to_sim(pose.repeat(env.num_envs, 1))
+            joint_vel = asset.data.default_joint_vel[env_ids].clone()
+            asset.set_joint_position_target(pose, env_ids=env_ids)
+            asset.set_joint_velocity_target(joint_vel, env_ids=env_ids)
+            asset.write_joint_state_to_sim(pose, joint_vel, env_ids=env_ids)
 
 def randomize_joint_by_gaussian_offset(
     env: ManagerBasedEnv,

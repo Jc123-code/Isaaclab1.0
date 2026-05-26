@@ -25,6 +25,34 @@ def _as_seq(x):
     return (x,) if not isinstance(x, (list, tuple)) else x
 
 
+def _resolve_env_ids(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> torch.Tensor:
+    """Resolve environment indices for partial resets and startup events."""
+    if env_ids is None:
+        return torch.arange(env.num_envs, device=env.device, dtype=torch.long)
+    if isinstance(env_ids, slice):
+        return torch.arange(env.num_envs, device=env.device, dtype=torch.long)[env_ids]
+    if not isinstance(env_ids, torch.Tensor):
+        return torch.as_tensor(env_ids, device=env.device, dtype=torch.long)
+    return env_ids.to(device=env.device, dtype=torch.long)
+
+
+def _resolve_joint_ids(asset: Articulation, cfg: SceneEntityCfg):
+    """Resolve joint ids from SceneEntityCfg for direct event usage."""
+    joint_ids = getattr(cfg, "joint_ids", slice(None))
+    joint_names = getattr(cfg, "joint_names", None)
+    if joint_ids == slice(None) and joint_names is not None:
+        joint_ids, _ = asset.find_joints(joint_names, preserve_order=getattr(cfg, "preserve_order", False))
+    return joint_ids
+
+
+def _selected_joint_count(asset: Articulation, joint_ids) -> int:
+    if isinstance(joint_ids, slice):
+        return asset.num_joints
+    if isinstance(joint_ids, int):
+        return 1
+    return len(joint_ids)
+
+
 
 def set_default_joint_pose(
     env: ManagerBasedEnv,
@@ -35,22 +63,31 @@ def set_default_joint_pose(
     """
     """
     cfgs = _as_seq(asset_cfg)
+    env_ids = _resolve_env_ids(env, env_ids)
 
     if default_pose is not None:
         poses = _as_seq(default_pose)
         for pose, cfg  in zip(poses, cfgs):
             asset: Articulation = env.scene[cfg.name]
+            joint_ids = _resolve_joint_ids(asset, cfg)
             pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
-            dof = asset.data.default_joint_pos.shape[-1]
+            dof = _selected_joint_count(asset, joint_ids)
             assert pose.shape[-1] == dof 
-            asset.data.default_joint_pos = (pose.repeat(env.num_envs, 1))
+            if joint_ids == slice(None):
+                asset.data.default_joint_pos[env_ids] = pose.repeat(env_ids.numel(), 1)
+            else:
+                asset.data.default_joint_pos[env_ids[:, None], joint_ids] = pose.repeat(env_ids.numel(), 1)
     else:
         for cfg  in cfgs:
             asset: Articulation = env.scene[cfg.name]
-            pose = asset.data.default_joint_pos  # (1, DoF)
-            dof = asset.data.default_joint_pos.shape[-1]
-            assert pose.shape[-1] == dof 
-            asset.data.default_joint_pos = (pose.repeat(env.num_envs, 1))
+            joint_ids = _resolve_joint_ids(asset, cfg)
+            pose = asset.data.default_joint_pos[env_ids][:, joint_ids].clone()
+            dof = _selected_joint_count(asset, joint_ids)
+            assert pose.shape[-1] == dof
+            if joint_ids == slice(None):
+                asset.data.default_joint_pos[env_ids] = pose
+            else:
+                asset.data.default_joint_pos[env_ids[:, None], joint_ids] = pose
 
 def reset_to_default_joint_pose(
     env: ManagerBasedEnv,
@@ -61,26 +98,34 @@ def reset_to_default_joint_pose(
     """
     """
     cfgs = _as_seq(asset_cfg)
+    env_ids = _resolve_env_ids(env, env_ids)
 
     if default_pose is not None:
         poses = _as_seq(default_pose)
         for pose, cfg  in zip(poses, cfgs):
             asset: Articulation = env.scene[cfg.name]
+            joint_ids = _resolve_joint_ids(asset, cfg)
             pose = torch.as_tensor(pose, device=env.device).view(1, -1)  # (1, DoF)
-            dof = asset.data.default_joint_pos.shape[-1]
+            dof = _selected_joint_count(asset, joint_ids)
             assert pose.shape[-1] == dof 
-            q = pose.repeat(env.num_envs, 1)
+            q = pose.repeat(env_ids.numel(), 1)
             qd = torch.zeros_like(q)
-            asset.write_joint_state_to_sim(q, qd)
+            asset.set_joint_position_target(q, joint_ids=joint_ids, env_ids=env_ids)
+            asset.set_joint_velocity_target(qd, joint_ids=joint_ids, env_ids=env_ids)
+            asset.write_joint_state_to_sim(q, qd, joint_ids=joint_ids, env_ids=env_ids)
     else:
         for cfg  in cfgs:
             asset: Articulation = env.scene[cfg.name]
-            pose = asset.data.default_joint_pos  # (1, DoF)
-            dof = asset.data.default_joint_pos.shape[-1]
-            assert pose.shape[-1] == dof 
-            q = pose.repeat(env.num_envs, 1)
-            qd = torch.zeros_like(q)
-            asset.write_joint_state_to_sim(q, qd)
+            joint_ids = _resolve_joint_ids(asset, cfg)
+            pose = asset.data.default_joint_pos[env_ids][:, joint_ids].clone()
+            qd = asset.data.default_joint_vel[env_ids][:, joint_ids].clone()
+            dof = _selected_joint_count(asset, joint_ids)
+            assert pose.shape[-1] == dof
+            q = pose
+            asset.set_joint_position_target(q, joint_ids=joint_ids, env_ids=env_ids)
+            asset.set_joint_velocity_target(qd, joint_ids=joint_ids, env_ids=env_ids)
+            asset.write_joint_state_to_sim(q, qd, joint_ids=joint_ids, env_ids=env_ids)
+
 
 def randomize_joint_by_gaussian_offset(
     env: ManagerBasedEnv,
@@ -123,6 +168,7 @@ def randomize_joint_by_gaussian_offset(
         asset.set_joint_position_target(q, env_ids=env_ids)
         asset.set_joint_velocity_target(qd0, env_ids=env_ids)
         asset.write_joint_state_to_sim(q, qd0, env_ids=env_ids)
+
 
 def reset_pose_to_default(env, env_ids, default_pose, asset_cfg):
     """

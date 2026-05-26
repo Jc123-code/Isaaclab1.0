@@ -26,6 +26,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.frame_transformer import OffsetCfg
 
 from . import mdp
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg
 
 
 ##
@@ -50,6 +51,11 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     wrist_cam_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
+    # GelSight Mini tactile sensors (will be populated by agent env cfg)
+    gsmini_left_left: GelSightMiniCfg = MISSING
+    gsmini_left_right: GelSightMiniCfg | None = None
+    gsmini_right_left: GelSightMiniCfg = MISSING
+    gsmini_right_right: GelSightMiniCfg | None = None
 
 
     # Table
@@ -95,7 +101,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     # zed_right: CameraCfg = MISSING
 
     tactical_vest = RigidObjectCfg(
-        prim_path="/World/tactical_vest",
+        prim_path="{ENV_REGEX_NS}/tactical_vest",
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=(0.71351, -0.41501, 1.15013),
             rot=(0.62295, 0.44857, -0.55794, -0.3153)
@@ -118,7 +124,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     )
 
     magazine = RigidObjectCfg(
-        prim_path="/World/magazine",
+        prim_path="{ENV_REGEX_NS}/magazine",
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=(0.41814, -0.6138, 1.05094),
             rot=(0.54294, -0.54546, -0.45562, -0.44787)
@@ -205,13 +211,13 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
 
     table_frame = FrameTransformerCfg(
         # 设置父坐标系的xform
-        prim_path="/World/tactical_vest",
+        prim_path="{ENV_REGEX_NS}/tactical_vest",
         debug_vis=False,
         # debug_vis= True,
         target_frames=[
             FrameTransformerCfg.FrameCfg(
                 #tactical_vest 作为第一个目标frame (index 0)
-                prim_path="/World/tactical_vest",
+                prim_path="{ENV_REGEX_NS}/tactical_vest",
                 name="tactical_vest",
                 offset=OffsetCfg(
                     pos=(0.0, 0, 0),
@@ -220,7 +226,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             ),
             FrameTransformerCfg.FrameCfg(
                 # magazine作为第二个目标frame (index 1)
-                prim_path="/World/magazine",
+                prim_path="{ENV_REGEX_NS}/magazine",
                 name="magazine",
                 offset=OffsetCfg(
                     pos=(0, 0, -0.1),
@@ -296,6 +302,23 @@ class ObservationsCfg:
         )
         table_cam = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
+        )
+        # Tactile observations for dataset recording (saved under obs/policy in hdf5).
+        gsmini_left_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_right_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_left_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "marker_motion", "normalize": False},
+        )
+        gsmini_right_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "marker_motion", "normalize": False},
         )
         
         def __post_init__(self):

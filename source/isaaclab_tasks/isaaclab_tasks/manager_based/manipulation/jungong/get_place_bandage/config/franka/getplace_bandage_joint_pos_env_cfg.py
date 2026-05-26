@@ -122,7 +122,6 @@ class FrankaGetPlacebandageEnvCfg(GetPlacebandageEnvCfg):
         self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
                                 init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107,0,0],))#wxyz
 
-
         self.scene.robot_right.spawn.semantic_tags = [("class", "robot"),("instance", "robot_right")]
 
         # Add semantics to table
@@ -291,7 +290,7 @@ class FrankaGetPlacebandageEnvCfg(GetPlacebandageEnvCfg):
                 dx=26,
                 dy=29,
             ),
-            tactile_img_res=(320, 240),  # rgb图分辨率
+            tactile_img_res=(240,180),  # rgb图分辨率
             device="cuda",
             frame_transformer_cfg=FrameTransformerCfg(
                 prim_path=gelpad_prim,
@@ -311,7 +310,7 @@ class FrankaGetPlacebandageEnvCfg(GetPlacebandageEnvCfg):
             sensor_camera_cfg=GelSightMiniCfg.SensorCameraCfg(
                 prim_path_appendix="/Camera",
                 update_period=0,
-                resolution=(320, 240),  # 深度图
+                resolution=(240,180),  # 深度图
                 data_types=["depth"],
                 clipping_range=(0.024, 0.034),
             ),
@@ -324,7 +323,7 @@ class FrankaGetPlacebandageEnvCfg(GetPlacebandageEnvCfg):
         gsmini_template.optical_sim_cfg = gsmini_template.optical_sim_cfg.replace(
             with_shadow=False,
             device="cuda",
-            tactile_img_res=(320, 240),  # fotsmarker图
+            tactile_img_res=(240,180),  # fotsmarker图
         )
 
         # One GelSight per hand (left finger only) to avoid duplicate windows.

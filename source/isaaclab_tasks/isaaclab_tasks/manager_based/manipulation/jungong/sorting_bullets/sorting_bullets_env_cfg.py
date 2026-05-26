@@ -26,6 +26,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.frame_transformer import OffsetCfg
 
 from . import mdp
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg
 
 
 ##
@@ -50,6 +51,11 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     wrist_cam_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
+    # GelSight Mini tactile sensors (will be populated by agent env cfg)
+    gsmini_left_left: GelSightMiniCfg = MISSING
+    gsmini_left_right: GelSightMiniCfg | None = None
+    gsmini_right_left: GelSightMiniCfg = MISSING
+    gsmini_right_right: GelSightMiniCfg | None = None
 
 
     # Table
@@ -97,7 +103,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     bullet_762 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/bullet_762",
         init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.41769, 0.3, 1.03902),
+            pos=(0.41769, 0.5, 1.03902),
             rot=(0.62295, 0.44857, -0.55794, -0.3153)
         ),
         spawn=sim_utils.UsdFileCfg(
@@ -114,50 +120,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                 mass=0.05,
             ),
 
-        ),
-    )
-
-    bullet_762_2 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/bullet_762_2",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.41769, 0.37, 1.03902),
-            rot=(0.62295, 0.44857, -0.55794, -0.3153)
-        ),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/7.62_Bullet/7.62_Bullet.usdc",
-            scale=(0.25, 0.25, 0.15),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                kinematic_enabled=False,
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(
-                mass=0.05,
-            ),
-        ),
-    )
-
-    bullet_762_3 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/bullet_762_3",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.41769, 0.44, 1.03902),
-            rot=(0.62295, 0.44857, -0.55794, -0.3153)
-        ),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/7.62_Bullet/7.62_Bullet.usdc",
-            scale=(0.25, 0.25, 0.15),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                kinematic_enabled=False,
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(
-                mass=0.05,
-            ),
         ),
     )
 
@@ -181,50 +143,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                 mass=0.05,
             ),
 
-        ),
-    )
-
-    bullet_9_2 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/bullet_9_2",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.47, 0.6, 1.04247),
-            rot=(0.54294, -0.54546, -0.45562, -0.44787)
-        ),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/9_Bullet/9_Bullet.usdc",
-            scale=(1, 1, 1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                kinematic_enabled=False,
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(
-                mass=0.05,
-            ),
-        ),
-    )
-
-    bullet_9_3 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/bullet_9_3",
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.51, 0.6, 1.04247),
-            rot=(0.54294, -0.54546, -0.45562, -0.44787)
-        ),
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/sorting_bullets/9_Bullet/9_Bullet.usdc",
-            scale=(1, 1, 1),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                kinematic_enabled=False,
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(
-                mass=0.05,
-            ),
         ),
     )
 
@@ -401,7 +319,24 @@ class ObservationsCfg:
         table_cam = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
         )
-        
+                # Tactile observations for dataset recording (saved under obs/policy in hdf5).
+        gsmini_left_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_right_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_left_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "marker_motion", "normalize": False},
+        )
+        gsmini_right_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "marker_motion", "normalize": False},
+        )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False

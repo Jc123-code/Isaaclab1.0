@@ -12,17 +12,20 @@ from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.sensors import CameraCfg, FrameTransformerCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 
-from . import rotatehandlelock_joint_pos_env_cfg
+from . import rotatehandlelocktest_joint_pos_env_cfg
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,)  # isort: skip
+from tacex_assets.robots.franka import (  # isort: skip
+    FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG,
+)
+
 
 
 @configclass
-class FrankaRotateHandleLockEnvCfg(
-    rotatehandlelock_joint_pos_env_cfg.FrankaRotateHandleLockEnvCfg
+class FrankaRotateHandleLockTestEnvCfg(
+    rotatehandlelocktest_joint_pos_env_cfg.FrankaRotateHandleLockTestEnvCfg
 ):
     def __post_init__(self):
         # post init of parent
@@ -31,22 +34,25 @@ class FrankaRotateHandleLockEnvCfg(
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下
-        self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(
+        self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
             prim_path="{ENV_REGEX_NS}/panda_right",
             init_state=ArticulationCfg.InitialStateCfg(
                 pos=[0, -0.05, 1.6],
                 rot=[0.707107, 0.707107, 0.0, 0.0],
-                joint_pos=FRANKA_PANDA_HIGH_PD_CFG.init_state.joint_pos,
+                joint_pos=FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.init_state.joint_pos,
             ),
         )  # wxyz
-        self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(
+        self.scene.robot_left = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
             prim_path="{ENV_REGEX_NS}/panda_left",
             init_state=ArticulationCfg.InitialStateCfg(
                 pos=[0, 0.05, 1.6],
                 rot=[0.707107, -0.707107, 0.0, 0.0],
-                joint_pos=FRANKA_PANDA_HIGH_PD_CFG.init_state.joint_pos,
+                joint_pos=FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.init_state.joint_pos,
             ),
         )  # wxyz
+        # Refresh tactile sensors after the IK robot configs are swapped in.
+        self._configure_gsmini_sensors()
+
         
         # Set zed cameras
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下，比如这里的panda_handa坐标系下

@@ -49,7 +49,7 @@ def button_press_hold_success(
     env: ManagerBasedRLEnv,
     press_joint_name: str = "PrismaticJoint",
     press_threshold: float = -0.01,
-    hold_time_s: float = 2.0,
+    hold_time_s: float = 1.0,
     default_color: tuple[float, float, float] = (0.5, 0.0, 1.0),
     active_color: tuple[float, float, float] = (0.0, 1.0, 0.0),
 ) -> torch.Tensor:

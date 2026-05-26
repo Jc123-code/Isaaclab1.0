@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 def plant_redflag_success(
     env: ManagerBasedRLEnv,
     target_center: tuple[float, float, float] = (0.50823, -0.22484, 1.03),
-    xy_tolerance: float = 0.10,
+    xy_tolerance: float = 0.15,
     z_tolerance: float = 0.02,
     wait_time: float = 0.5,
 ) -> torch.Tensor:

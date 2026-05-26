@@ -27,7 +27,11 @@ from isaaclab_tasks.manager_based.manipulation.jungong.plant_redflag.plant_redfl
 # Pre-defined configs
 ##
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
-from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
+# from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
+from tacex_assets.robots.franka import FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG  # isort: skip
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg  # isort: skip
+from tacex.simulation_approaches.fots import FOTSMarkerSimulatorCfg  # isort: skip
+
 
 
 @configclass
@@ -40,6 +44,41 @@ class EventCfg:
             "parent_asset_cfg": SceneEntityCfg("table"),
             "child_asset_cfg": SceneEntityCfg("sandbox"),
             "joint_name": "sandbox_weld_joint",
+        },
+    )
+
+    set_redflag_high_friction = EventTerm(
+        func=franka_plant_redflag_events.bind_high_friction_physics_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("redflag"),
+            "static_friction": 3.0,
+            "dynamic_friction": 2.5,
+        },
+    )
+
+    set_tactile_pad_high_friction = EventTerm(
+        func=franka_plant_redflag_events.bind_high_friction_material_to_prim_paths,
+        mode="startup",
+        params={
+            "prim_path_exprs": [
+                "{ENV_REGEX_NS}/panda_left/gelpad_left",
+                "{ENV_REGEX_NS}/panda_left/gelpad_right",
+                "{ENV_REGEX_NS}/panda_right/gelpad_left",
+                "{ENV_REGEX_NS}/panda_right/gelpad_right",
+                "{ENV_REGEX_NS}/panda_left/gelsight_mini_case_left",
+                "{ENV_REGEX_NS}/panda_left/gelsight_mini_case_right",
+                "{ENV_REGEX_NS}/panda_right/gelsight_mini_case_left",
+                "{ENV_REGEX_NS}/panda_right/gelsight_mini_case_right",
+                "{ENV_REGEX_NS}/panda_left/panda_leftfinger",
+                "{ENV_REGEX_NS}/panda_left/panda_rightfinger",
+                "{ENV_REGEX_NS}/panda_right/panda_leftfinger",
+                "{ENV_REGEX_NS}/panda_right/panda_rightfinger",
+            ],
+            "static_friction": 10.0,
+            "dynamic_friction": 8.0,
+            "rest_offset": 0.005,
+            "contact_offset": 0.012,
         },
     )
 
@@ -102,13 +141,29 @@ class FrankaPlantredflagEnvCfg(PlantredflagEnvCfg):
         self.events = EventCfg()
 
         # Set Franka as robot
-        self.scene.robot_left = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, -0.05, 1.6],rot=[0.707107, 0.707107, 0.0, 0.0],))#wxyz    
+        self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
+            prim_path="{ENV_REGEX_NS}/panda_right",
+            init_state=ArticulationCfg.InitialStateCfg(
+                pos=[0, -0.05, 1.6],
+                rot=[0.707107, 0.707107, 0.0, 0.0],
+                joint_pos=FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.init_state.joint_pos,
+            ),
+        )  # wxyz
+        self.scene.robot_left = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
+            prim_path="{ENV_REGEX_NS}/panda_left",
+            init_state=ArticulationCfg.InitialStateCfg(
+                pos=[0, 0.05, 1.6],
+                rot=[0.707107, -0.707107, 0.0, 0.0],
+                joint_pos=FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.init_state.joint_pos,
+            ),
+        )  # wxyz
 
-        self.scene.robot_left.spawn.semantic_tags = [("class", "robot"),("instance", "robot_left")]
+        self._strengthen_tactile_gripper(self.scene.robot_left)
+        self._strengthen_tactile_gripper(self.scene.robot_right)
 
-        self.scene.robot_right = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107,0,0],))#wxyz    
+        # Refresh tactile sensors after the IK robot configs are swapped in.
+        self._configure_gsmini_sensors()
+
 
         self.scene.robot_right.spawn.semantic_tags = [("class", "robot"),("instance", "robot_right")]
 
@@ -132,13 +187,13 @@ class FrankaPlantredflagEnvCfg(PlantredflagEnvCfg):
             asset_name="robot_left",
             joint_names=["panda_finger.*"],
             open_command_expr={"panda_finger_.*": 0.04},
-            close_command_expr={"panda_finger_.*": 0.0},
+            close_command_expr={"panda_finger_.*": -0.01},
         )
         self.actions.gripper_action_right = mdp.BinaryJointPositionActionCfg(
             asset_name="robot_right",
             joint_names=["panda_finger.*"],
             open_command_expr={"panda_finger_.*": 0.04},
-            close_command_expr={"panda_finger_.*": 0.0},
+            close_command_expr={"panda_finger_.*": -0.01},
         )
 
         self.scene.wrist_cam_left = CameraCfg(
@@ -262,3 +317,70 @@ class FrankaPlantredflagEnvCfg(PlantredflagEnvCfg):
 
             ],
         )
+
+    def _strengthen_tactile_gripper(self, robot_cfg: ArticulationCfg):
+        hand_actuator = robot_cfg.actuators.get("panda_hand")
+        if hand_actuator is None:
+            return
+
+        hand_actuator.effort_limit_sim = 400.0
+        hand_actuator.velocity_limit_sim = 0.5
+        hand_actuator.stiffness = 5000.0
+        hand_actuator.damping = 200.0
+
+    def _marker_cfg(self, gelpad_prim: str) -> FOTSMarkerSimulatorCfg:
+        return FOTSMarkerSimulatorCfg(
+            lamb=[0.00125, 0.00021, 0.00038],
+            pyramid_kernel_size=[51, 21, 11, 5],
+            kernel_size=5,
+            marker_params=FOTSMarkerSimulatorCfg.MarkerParams(
+                num_markers_col=9,
+                num_markers_row=11,
+                num_markers=99,
+                x0=15,
+                y0=26,
+                dx=26,
+                dy=29,
+            ),
+            tactile_img_res=(240, 180),  # rgb图分辨率
+            device="cuda",
+            frame_transformer_cfg=FrameTransformerCfg(
+                prim_path=gelpad_prim,
+                target_frames=[
+                    FrameTransformerCfg.FrameCfg(
+                        prim_path="/World/envs/env_.*/redflag",
+                        name="redflag",
+                    )
+                ],
+                debug_vis=False,
+            ),
+        )  # fots maker图
+
+    def _configure_gsmini_sensors(self):
+        gsmini_template = GelSightMiniCfg(
+            prim_path="{ENV_REGEX_NS}/panda_left/gelsight_mini_case_left",
+            sensor_camera_cfg=GelSightMiniCfg.SensorCameraCfg(
+                prim_path_appendix="/Camera",
+                update_period=0,
+                resolution=(240, 180),  # 深度图
+                data_types=["depth"],
+                clipping_range=(0.024, 0.034),
+            ),
+            device="cuda",
+            debug_vis=True,
+            # debug_vis=False, #弹出fots_marker
+            marker_motion_sim_cfg=self._marker_cfg("/World/envs/env_.*/panda_left/gelpad_left"),
+            data_types=["tactile_rgb", "marker_motion"],
+        )
+        gsmini_template.optical_sim_cfg = gsmini_template.optical_sim_cfg.replace(
+            with_shadow=False,
+            device="cuda",
+            tactile_img_res=(240, 180),  # fotsmarker图
+        )
+
+        # One GelSight per hand (left finger only) to avoid duplicate windows.
+        self.scene.gsmini_left_left = gsmini_template
+        self.scene.gsmini_right_left = gsmini_template.replace(
+            prim_path="{ENV_REGEX_NS}/panda_right/gelsight_mini_case_left",
+            marker_motion_sim_cfg=self._marker_cfg("/World/envs/env_.*/panda_right/gelpad_left"),
+        )  # 触觉图像

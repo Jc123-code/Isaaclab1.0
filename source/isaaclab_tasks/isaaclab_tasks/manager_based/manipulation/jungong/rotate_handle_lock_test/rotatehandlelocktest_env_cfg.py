@@ -26,6 +26,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.frame_transformer import OffsetCfg
 
 from . import mdp
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg
 
 
 ##
@@ -50,6 +51,11 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     wrist_cam_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
+    # GelSight Mini tactile sensors (will be populated by agent env cfg)
+    gsmini_left_left: GelSightMiniCfg = MISSING
+    gsmini_left_right: GelSightMiniCfg | None = None
+    gsmini_right_left: GelSightMiniCfg = MISSING
+    gsmini_right_right: GelSightMiniCfg | None = None
 
 
     # plane
@@ -89,7 +95,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         target_frames=[
             FrameTransformerCfg.FrameCfg(
                 # 容器手柄
-                prim_path="{ENV_REGEX_NS}/container/Meshes/handle",
+                prim_path="{ENV_REGEX_NS}/container/Meshes/handle_1",
                 name="handle",
                 offset=OffsetCfg(
                     pos=(0.0, 0, 0),
@@ -128,8 +134,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             # 该值近似表示绕 z 轴旋转 90°。
             rot=(0, 0, 0, 1),
             joint_pos={
-                "RevoluteJoint": 0.0,
-                "RevoluteJoint_1": 0.0,
+                "RevoluteJoint_1": 0.1909069051085944,
                 "RevoluteJoint_door": 0.0,
             },
         ),
@@ -138,7 +143,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             # 模型资产路径。该文件中应包含容器的几何、材质、
             # 以及可能的碰撞/刚体/关节信息。
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/rotate_handle_lock/test_13.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/rotate_handle_lock/test_13/main.usdc",
 
             # 统一缩放为原始尺寸的 15%。
             scale=(0.7, 1, 1),
@@ -151,34 +156,26 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             # ),
         ),
 
-        # 给把手和门关节增加较大的阻尼/摩擦，减少非接触扰动带来的自转。
+        # RevoluteJoint_1 is pushed by contact, so keep its damping/friction low.
+        # Large values make the handle feel almost locked to the robot.
         actuators={
-            "handle_primary": ImplicitActuatorCfg(
-                joint_names_expr=["RevoluteJoint"],
-                effort_limit=30.0,
-                velocity_limit=4.0,
-                stiffness=0.0,
-                damping=40.0,
-                friction=12.0,
-                armature=0.02,
-            ),
             "handle_secondary": ImplicitActuatorCfg(
                 joint_names_expr=["RevoluteJoint_1"],
                 effort_limit=30.0,
                 velocity_limit=4.0,
                 stiffness=0.0,
-                damping=40.0,
-                friction=12.0,
-                armature=0.02,
+                damping=0.1,
+                friction=0.02,
+                armature=0.0005,
             ),
             "door_hinge": ImplicitActuatorCfg(
                 joint_names_expr=["RevoluteJoint_door"],
                 effort_limit=35.0,
                 velocity_limit=3.0,
                 stiffness=0.0,
-                damping=30.0,
-                friction=10.0,
-                armature=0.02,
+                damping=0.1,
+                friction=0.02,
+                armature=0.0005,
             ),
         },
     )
@@ -260,6 +257,23 @@ class ObservationsCfg:
         zed_right = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("zed_right"), "data_type": "rgb", "normalize": False}
         )
+        # Tactile observations for dataset recording (saved under obs/policy in hdf5).
+        gsmini_left_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_right_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_left_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "marker_motion", "normalize": False},
+        )
+        gsmini_right_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "marker_motion", "normalize": False},
+        )
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -309,15 +323,13 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     success = DoneTerm(
-        func=mdp.switch_joint_rotated_success,
+        func=mdp.switch_joint_reached_position,
         params={
-            "angle_threshold_deg": 20.0,
-            "angle_threshold_deg_2": 20.0,
-            "hold_time_s": 0.5,
-            "joint_name": "RevoluteJoint",
-            "joint_name_2": "RevoluteJoint_1",
-            "direction": "cw",
-            "direction_2": "cw",
+            "target_position_deg": -14.11,
+            "tolerance_deg": 8.0,
+            "velocity_threshold_deg_s": 1.0,
+            "hold_time_s": 0.2,
+            "joint_name": "RevoluteJoint_1",
             "debug_print": True,
             "debug_env_id": 0,
             "debug_every_n_steps": 10,
@@ -326,7 +338,7 @@ class TerminationsCfg:
 
 
 @configclass
-class RotateHandleLockEnvCfg(ManagerBasedRLEnvCfg):
+class RotateHandleLockTestEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the rotate_handle_lock_test environment."""
 
     # Scene settings

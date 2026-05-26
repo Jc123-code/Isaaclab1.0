@@ -17,7 +17,10 @@ from . import sorting_bullets_joint_pos_env_cfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,)  # isort: skip
+from tacex_assets.robots.franka import (  # isort: skip
+    FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG,
+)
+
 
 
 @configclass
@@ -29,12 +32,14 @@ class FrankaSortingBulletsEnvCfg(sorting_bullets_joint_pos_env_cfg.FrankaSorting
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下
-        self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
+        self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
                                 init_state=ArticulationCfg.InitialStateCfg(pos=[0, -0.05, 1.6],rot=[0.707107, 0.707107, 0.0, 0.0],))#wxyz  
-        self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
+        self.scene.robot_left = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
                                 init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107, 0.0, 0.0],))#wxyz    
         # 桌子无关节，显式给空 actuators，避免后续 reset 访问缺失属性
         self.scene.table.actuators = {}
+        # Refresh tactile sensors after the IK robot configs are swapped in.
+        self._configure_gsmini_sensors()
 
         # Set zed cameras
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下，比如这里的panda_handa坐标系下

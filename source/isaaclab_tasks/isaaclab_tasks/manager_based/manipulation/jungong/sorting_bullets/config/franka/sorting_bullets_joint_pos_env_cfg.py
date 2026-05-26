@@ -27,7 +27,11 @@ from isaaclab_tasks.manager_based.manipulation.jungong.sorting_bullets.sorting_b
 # Pre-defined configs
 ##
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
-from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
+# from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
+from tacex_assets.robots.franka import FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG  # isort: skip
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg  # isort: skip
+from tacex.simulation_approaches.fots import FOTSMarkerSimulatorCfg  # isort: skip
+
 
 
 @configclass
@@ -70,19 +74,11 @@ class EventCfg:
         params={
             "default_pose": [
                 torch.tensor([
-                    0.41769, 0.3, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
-                    0, 0, 0, 0, 0, 0
-                ], device="cuda"),
-                torch.tensor([
-                    0.41769, 0.37, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
-                    0, 0, 0, 0, 0, 0
-                ], device="cuda"),
-                torch.tensor([
-                    0.41769, 0.44, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
+                    0.41769, 0.5, 1.03902, 0.62295, 0.44857, -0.55794, -0.3153,
                     0, 0, 0, 0, 0, 0
                 ], device="cuda"),
             ],
-            "asset_cfg": [SceneEntityCfg("bullet_762"), SceneEntityCfg("bullet_762_2"), SceneEntityCfg("bullet_762_3")],
+            "asset_cfg": [SceneEntityCfg("bullet_762")],
         },
     )
 
@@ -95,16 +91,8 @@ class EventCfg:
                     0.43, 0.6, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
                     0, 0, 0, 0, 0, 0
                 ], device="cuda"),
-                torch.tensor([
-                    0.47, 0.6, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
-                    0, 0, 0, 0, 0, 0
-                ], device="cuda"),
-                torch.tensor([
-                    0.51, 0.6, 1.04247, 0.54294, -0.54546, -0.45562, -0.44787,
-                    0, 0, 0, 0, 0, 0
-                ], device="cuda"),
             ],
-            "asset_cfg": [SceneEntityCfg("bullet_9"), SceneEntityCfg("bullet_9_2"), SceneEntityCfg("bullet_9_3")],
+            "asset_cfg": [SceneEntityCfg("bullet_9")],
         },
     )
 
@@ -139,13 +127,14 @@ class FrankaSortingBulletsEnvCfg(SortingBulletsEnvCfg):
         self.events = EventCfg()
 
         # Set Franka as robot
-        self.scene.robot_left = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
+        self.scene.robot_left = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
                                 init_state=ArticulationCfg.InitialStateCfg(pos=[0, -0.05, 1.6],rot=[0.707107, 0.707107, 0.0, 0.0],))#wxyz    
 
         self.scene.robot_left.spawn.semantic_tags = [("class", "robot"),("instance", "robot_left")]
 
-        self.scene.robot_right = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107,0,0],))#wxyz    
+        self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
+                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107,0,0],))#wxyz  
+
 
         self.scene.robot_right.spawn.semantic_tags = [("class", "robot"),("instance", "robot_right")]
 
@@ -215,6 +204,7 @@ class FrankaSortingBulletsEnvCfg(SortingBulletsEnvCfg):
             ),
             offset=CameraCfg.OffsetCfg(pos=(0.25318, -0.03488, 3.659), rot=(0.02656,-0.70663,0.70695,-0.01408), convention="ros"),
         )
+        self._configure_gsmini_sensors()
 
         # Listens to the required transforms
         marker_cfg_left = FRAME_MARKER_CFG.copy()
@@ -299,3 +289,60 @@ class FrankaSortingBulletsEnvCfg(SortingBulletsEnvCfg):
 
             ],
         )
+
+    def _marker_cfg(self, gelpad_prim: str) -> FOTSMarkerSimulatorCfg:
+        return FOTSMarkerSimulatorCfg(
+            lamb=[0.00125, 0.00021, 0.00038],
+            pyramid_kernel_size=[51, 21, 11, 5],
+            kernel_size=5,
+            marker_params=FOTSMarkerSimulatorCfg.MarkerParams(
+                num_markers_col=9,
+                num_markers_row=11,
+                num_markers=99,
+                x0=15,
+                y0=26,
+                dx=26,
+                dy=29,
+            ),
+            tactile_img_res=(240, 180),  # rgb图分辨率
+            device="cuda",
+            frame_transformer_cfg=FrameTransformerCfg(
+                prim_path=gelpad_prim,
+                target_frames=[
+                    FrameTransformerCfg.FrameCfg(
+                        prim_path="/World/envs/env_.*/Ammunition_Box",      
+                        name="Ammunition_Box",
+                    )
+                ],
+                debug_vis=False,
+            ),
+        )  # fots maker图
+
+    def _configure_gsmini_sensors(self):
+        gsmini_template = GelSightMiniCfg(
+            prim_path="{ENV_REGEX_NS}/panda_left/gelsight_mini_case_left",
+            sensor_camera_cfg=GelSightMiniCfg.SensorCameraCfg(
+                prim_path_appendix="/Camera",
+                update_period=0,
+                resolution=(240, 180),  # 深度图
+                data_types=["depth"],
+                clipping_range=(0.024, 0.034),
+            ),
+            device="cuda",
+            debug_vis=True,
+            # debug_vis=False, #弹出fots_marker
+            marker_motion_sim_cfg=self._marker_cfg("/World/envs/env_.*/panda_left/gelpad_left"),
+            data_types=["tactile_rgb", "marker_motion"],
+        )
+        gsmini_template.optical_sim_cfg = gsmini_template.optical_sim_cfg.replace(
+            with_shadow=False,
+            device="cuda",
+            tactile_img_res=(240, 180),  # fotsmarker图
+        )
+
+        # One GelSight per hand (left finger only) to avoid duplicate windows.
+        self.scene.gsmini_left_left = gsmini_template
+        self.scene.gsmini_right_left = gsmini_template.replace(
+            prim_path="{ENV_REGEX_NS}/panda_right/gelsight_mini_case_left",
+            marker_motion_sim_cfg=self._marker_cfg("/World/envs/env_.*/panda_right/gelpad_left"),
+        )  # 触觉图像

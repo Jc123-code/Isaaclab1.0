@@ -254,6 +254,16 @@ def main():
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg).unwrapped
 
+    def clear_rotate_handle_success_state(env):
+        for attr_name in (
+            "_container_target_reached_state",
+            "_container_target_hold_time",
+            "_container_target_prev_episode_step",
+            "_target_success_debug_counter",
+        ):
+            if hasattr(env, attr_name):
+                delattr(env, attr_name)
+
     def enable_gsmini_debug(env):
         # Enable tactile debug views (FOTS marker motion + Taxim RGB) if available
         for name, sensor in env.scene.sensors.items():
@@ -295,6 +305,7 @@ def main():
                 break
 
             env.reset()
+            clear_rotate_handle_success_state(env)
             enable_gsmini_debug(env)
             should_reset_recording_instance = False
             success_step_count = 0 # 清零回合成功保持步数计数器

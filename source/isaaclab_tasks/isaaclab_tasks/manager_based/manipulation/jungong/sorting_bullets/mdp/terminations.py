@@ -21,12 +21,12 @@ def sorting_bullets_success(
     env: ManagerBasedRLEnv,
     box_local_min: tuple[float, float, float] = (-0.12, -0.08, -0.12),
     box_local_max: tuple[float, float, float] = (0.12, 0.08, 0.14),
-    wait_time: float = 0.5,
+    wait_time: float = 0.2,
 ) -> torch.Tensor:
     """当全部 7.62 子弹进入 7.62 箱且全部 9mm 子弹进入 9mm 箱并持续停留后触发终止。"""
 
-    bullet_762_names = ("bullet_762", "bullet_762_2", "bullet_762_3")
-    bullet_9_names = ("bullet_9", "bullet_9_2", "bullet_9_3")
+    bullet_762_names = ("bullet_762",)
+    bullet_9_names = ("bullet_9",)
 
     ammunition_box_762: RigidObject = env.scene["Ammunition_Box_762"]
     ammunition_box_9: RigidObject = env.scene["Ammunition_Box"]

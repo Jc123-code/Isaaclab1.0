@@ -21,7 +21,7 @@ def insert_magazine_success(
     target_center: tuple[float, float, float] = (0.49, -0.40533, 1.24087),
     xy_tolerance: float = 0.15,
     z_tolerance: float = 0.04,
-    wait_time: float = 1.0,
+    wait_time: float = 0.01,
 ) -> torch.Tensor:
     """当 magazine 进入目标区域并连续保持 wait_time 秒后触发终止。"""
 

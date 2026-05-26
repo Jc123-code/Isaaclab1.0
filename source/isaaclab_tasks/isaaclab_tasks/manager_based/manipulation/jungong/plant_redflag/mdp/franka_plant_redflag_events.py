@@ -14,6 +14,9 @@ from typing import TYPE_CHECKING, Sequence, Union
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import Articulation, AssetBase
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.sim.schemas import CollisionPropertiesCfg, modify_collision_properties
+from isaaclab.sim.spawners.materials import RigidBodyMaterialCfg
+from isaaclab.sim.utils import bind_physics_material
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
@@ -24,6 +27,135 @@ import omni.usd
 
 def _as_seq(x):
     return (x,) if not isinstance(x, (list, tuple)) else x
+
+
+def bind_high_friction_physics_material(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("redflag"),
+    static_friction: float = 3.0,
+    dynamic_friction: float = 2.5,
+    restitution: float = 0.0,
+    material_name: str = "redflag_high_friction_physics_material",
+):
+    """Bind a high-friction physics material to all collision shapes under an asset."""
+
+    stage = omni.usd.get_context().get_stage()
+    asset = env.scene[asset_cfg.name]
+
+    material_path = f"/World/PhysicsMaterials/{material_name}"
+    UsdGeom.Scope.Define(stage, "/World/PhysicsMaterials")
+    material_cfg = RigidBodyMaterialCfg(
+        static_friction=static_friction,
+        dynamic_friction=dynamic_friction,
+        restitution=restitution,
+        friction_combine_mode="max",
+        restitution_combine_mode="min",
+    )
+    material_cfg.func(material_path, material_cfg)
+
+    if env_ids is None:
+        env_id_list = list(range(env.num_envs))
+    elif isinstance(env_ids, torch.Tensor):
+        env_id_list = env_ids.detach().cpu().tolist()
+    else:
+        env_id_list = list(env_ids)
+
+    root_paths = list(asset.root_physx_view.prim_paths[: asset.num_instances])
+    for env_id in env_id_list:
+        if env_id >= len(root_paths):
+            warnings.warn(
+                f"[bind_high_friction_physics_material] env_id={env_id} is outside asset instances for "
+                f"'{asset_cfg.name}'.",
+                stacklevel=2,
+            )
+            continue
+
+        root_path = root_paths[env_id]
+        if not stage.GetPrimAtPath(root_path).IsValid():
+            warnings.warn(
+                f"[bind_high_friction_physics_material] Invalid root prim for '{asset_cfg.name}': {root_path}",
+                stacklevel=2,
+            )
+            continue
+
+        bind_physics_material(root_path, material_path, stage=stage, stronger_than_descendants=True)
+
+
+def bind_high_friction_material_to_prim_paths(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    prim_path_exprs: Sequence[str],
+    static_friction: float = 6.0,
+    dynamic_friction: float = 5.0,
+    restitution: float = 0.0,
+    contact_offset: float | None = 0.008,
+    rest_offset: float | None = 0.003,
+    material_name: str = "tactile_pad_high_friction_physics_material",
+):
+    """Bind a high-friction material and optional collision offsets to selected prim paths.
+
+    This is used for the GelSight pads/fingers in plant_redflag.  The external tactile robot asset is
+    shared by many tasks, so the contact tuning is applied here at startup instead of editing the USD asset.
+    """
+
+    stage = omni.usd.get_context().get_stage()
+    UsdGeom.Scope.Define(stage, "/World/PhysicsMaterials")
+    material_path = f"/World/PhysicsMaterials/{material_name}"
+    material_cfg = RigidBodyMaterialCfg(
+        static_friction=static_friction,
+        dynamic_friction=dynamic_friction,
+        restitution=restitution,
+        friction_combine_mode="max",
+        restitution_combine_mode="min",
+    )
+    material_cfg.func(material_path, material_cfg)
+
+    collision_cfg = None
+    if contact_offset is not None or rest_offset is not None:
+        collision_cfg = CollisionPropertiesCfg(contact_offset=contact_offset, rest_offset=rest_offset)
+
+    if env_ids is None:
+        env_id_list = list(range(env.num_envs))
+    elif isinstance(env_ids, torch.Tensor):
+        env_id_list = env_ids.detach().cpu().tolist()
+    else:
+        env_id_list = list(env_ids)
+
+    bound_paths: set[str] = set()
+    env_regex_ns = getattr(env.scene, "env_regex_ns", "{ENV_REGEX_NS}")
+    env_prim_paths = getattr(env.scene, "env_prim_paths", [])
+
+    for env_id in env_id_list:
+        if env_id >= len(env_prim_paths):
+            warnings.warn(
+                f"[bind_high_friction_material_to_prim_paths] env_id={env_id} is outside env prim paths.",
+                stacklevel=2,
+            )
+            continue
+
+        env_prim_path = env_prim_paths[env_id]
+        for prim_path_expr in prim_path_exprs:
+            prim_path = prim_path_expr.replace("{ENV_REGEX_NS}", env_prim_path).replace(env_regex_ns, env_prim_path)
+            prim = stage.GetPrimAtPath(prim_path)
+            if not prim.IsValid():
+                warnings.warn(
+                    f"[bind_high_friction_material_to_prim_paths] Invalid prim path: {prim_path}",
+                    stacklevel=2,
+                )
+                continue
+
+            bind_physics_material(prim_path, material_path, stage=stage, stronger_than_descendants=True)
+            if collision_cfg is not None:
+                modify_collision_properties(prim_path, collision_cfg, stage=stage)
+            bound_paths.add(prim_path)
+
+    if bound_paths:
+        print(
+            "[plant_redflag] tuned tactile/finger contact on "
+            f"{len(bound_paths)} prim roots: static_friction={static_friction}, "
+            f"dynamic_friction={dynamic_friction}, rest_offset={rest_offset}, contact_offset={contact_offset}"
+        )
 
 
 def _extract_pose_from_matrix(transform: Gf.Matrix4d) -> tuple[Gf.Vec3f, Gf.Quatf]:
@@ -359,5 +491,3 @@ def randomize_object_pose(
             asset.write_root_velocity_to_sim(
                 torch.zeros(1, 6, device=env.device), env_ids=torch.tensor([cur_env], device=env.device)
             )
-
-

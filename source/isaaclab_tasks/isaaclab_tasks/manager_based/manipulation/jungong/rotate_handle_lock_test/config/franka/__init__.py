@@ -7,8 +7,8 @@ import os
 
 from . import (
     agents,
-    rotatehandlelock_ik_abs_env_cfg,
-    rotatehandlelock_joint_pos_env_cfg,
+    rotatehandlelocktest_ik_abs_env_cfg,
+    rotatehandlelocktest_joint_pos_env_cfg,
 )
 
 ##
@@ -20,10 +20,10 @@ from . import (
 ##
 
 gym.register(
-    id="Isaac-Rotate-Handle-Lock-Franka-Bimanual-v0",
+    id="Isaac-Rotate-Handle-Lock-Test-Franka-Bimanual-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
-        "env_cfg_entry_point": rotatehandlelock_joint_pos_env_cfg.FrankaRotateHandleLockEnvCfg,
+        "env_cfg_entry_point": rotatehandlelocktest_joint_pos_env_cfg.FrankaRotateHandleLockTestEnvCfg,
     },
     disable_env_checker=True,
 )
@@ -35,10 +35,10 @@ gym.register(
 ##
 
 gym.register(
-    id="Isaac-Rotate-Handle-Lock-Franka-Bimanual-IK-Abs-v0",
+    id="Isaac-Rotate-Handle-Lock-Test-Franka-Bimanual-IK-Abs-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
-        "env_cfg_entry_point": rotatehandlelock_ik_abs_env_cfg.FrankaRotateHandleLockEnvCfg, # 环境入口
+        "env_cfg_entry_point": rotatehandlelocktest_ik_abs_env_cfg.FrankaRotateHandleLockTestEnvCfg, # 环境入口
         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_low_dim.json"),  # 算法入口
         "robomimic_diffusion_policy_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/dp_unet_image.json"),  # 算法入口
     },

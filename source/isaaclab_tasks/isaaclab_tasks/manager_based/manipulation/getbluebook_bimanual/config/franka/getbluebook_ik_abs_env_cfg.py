@@ -17,7 +17,10 @@ from . import getbluebook_joint_pos_env_cfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import (FRANKA_PANDA_HIGH_PD_CFG,)  # isort: skip
+from tacex_assets.robots.franka import (  # isort: skip
+    FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG,
+)
+
 
 
 @configclass
@@ -29,11 +32,25 @@ class FrankaGetBlueBookEnvCfg(getbluebook_joint_pos_env_cfg.FrankaGetBlueBookEnv
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下
-        self.scene.robot_right = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_right",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, -0.05, 1.6],rot=[0.707107, 0.707107, 0.0, 0.0],))#wxyz  
-        self.scene.robot_left = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/panda_left",
-                                init_state=ArticulationCfg.InitialStateCfg(pos=[0, 0.05, 1.6],rot=[0.707107, -0.707107, 0.0, 0.0],))#wxyz    
-        
+        self.scene.robot_right = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
+            prim_path="{ENV_REGEX_NS}/panda_right",
+            init_state=ArticulationCfg.InitialStateCfg(
+                pos=[0, -0.05, 1.6],
+                rot=[0.707107, 0.707107, 0.0, 0.0],
+                joint_pos=FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.init_state.joint_pos,
+            ),
+        )  # wxyz
+        self.scene.robot_left = FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.replace(
+            prim_path="{ENV_REGEX_NS}/panda_left",
+            init_state=ArticulationCfg.InitialStateCfg(
+                pos=[0, 0.05, 1.6],
+                rot=[0.707107, -0.707107, 0.0, 0.0],
+                joint_pos=FRANKA_PANDA_ARM_GSMINI_GRIPPER_HIGH_PD_RIGID_CFG.init_state.joint_pos,
+            ),
+        )  # wxyz
+        # Refresh tactile sensors after the IK robot configs are swapped in.
+        self._configure_gsmini_sensors()
+
         # Set zed cameras
         # zed相机是一个带有物理性质的物体，不能随便次级挂载到某个xform下，比如这里的panda_handa坐标系下
         # 需要用fixed joint来固定连接两个物体才行，那样，就相当于把zed相机和panda机械臂安装在一起了，因此要导入 FRANKA_PANDA_ZED_HIGH_PD_CFG

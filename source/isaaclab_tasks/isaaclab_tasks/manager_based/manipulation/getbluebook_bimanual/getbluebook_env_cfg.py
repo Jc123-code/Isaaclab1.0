@@ -22,6 +22,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.frame_transformer import OffsetCfg
 
 from . import mdp
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg
 
 ##
 # Scene definition
@@ -45,6 +46,11 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     wrist_cam_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
+    # GelSight Mini tactile sensors (will be populated by agent env cfg)
+    gsmini_left_left: GelSightMiniCfg = MISSING
+    gsmini_left_right: GelSightMiniCfg | None = None
+    gsmini_right_left: GelSightMiniCfg = MISSING
+    gsmini_right_right: GelSightMiniCfg | None = None
 
 
     # Table

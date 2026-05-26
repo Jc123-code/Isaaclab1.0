@@ -26,6 +26,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.sensors.frame_transformer import OffsetCfg
 
 from . import mdp
+from tacex_assets.sensors.gelsight_mini.gsmini_cfg import GelSightMiniCfg
 
 
 ##
@@ -50,6 +51,11 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     wrist_cam_right: CameraCfg = MISSING
     
     table_cam: CameraCfg = MISSING
+    # GelSight Mini tactile sensors (will be populated by agent env cfg)
+    gsmini_left_left: GelSightMiniCfg = MISSING
+    gsmini_left_right: GelSightMiniCfg | None = None
+    gsmini_right_left: GelSightMiniCfg = MISSING
+    gsmini_right_right: GelSightMiniCfg | None = None
 
 
     # Table
@@ -60,7 +66,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                          scale=(0.5, 0.5, 0.5)),
         # 设置初始状态
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.5, 0.0, 0),
+            pos=(0.5, 0.0, -0.1),
             rot=(0.707, 0.0, 0.0, -0.707),
             # 桌子没有关节，避免正则匹配失败，显式给空关节状态
             joint_pos={},
@@ -142,8 +148,8 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         # 物体的初始状态配置：包括初始位置和朝向。
         init_state=ArticulationCfg.InitialStateCfg(
             # 初始位置 (x, y, z)
-            # 将开关放置在环境局部坐标中的 (0.5, -0.3, 1.2) 位置。
-            pos=(0.5, -0.3, 1.2),
+            # 将开关放置在环境局部坐标中的 (0.5, -0.3, 1.1) 位置。
+            pos=(0.5, -0.3, 1.1),
 
             # 初始旋转四元数 (w, x, y, z)
             # 该值近似表示绕 z 轴旋转 90°。
@@ -154,7 +160,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.UsdFileCfg(
             # 模型资产路径。该文件中应包含 switch 的几何、材质、
             # 以及可能的碰撞/刚体/关节信息。
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/unlock_cylinder_valve/new_1.usdz",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/mine_assets/jungong/unlock_cylinder_valve/new_1/main.usdc",
 
             # 统一缩放为原始尺寸的 15%。
             scale=(0.15, 0.15, 0.15),
@@ -252,6 +258,24 @@ class ObservationsCfg:
         table_cam = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
         )
+                # Tactile observations for dataset recording (saved under obs/policy in hdf5).
+        gsmini_left_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_right_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_left_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "marker_motion", "normalize": False},
+        )
+        gsmini_right_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "marker_motion", "normalize": False},
+        )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -302,8 +326,8 @@ class TerminationsCfg:
     success = DoneTerm(
         func=mdp.switch_joint_rotated_success_direction,
         params={
-            "angle_threshold_deg": 90.0, #旋转角度
-            "hold_time_s": 0.5,
+            "angle_threshold_deg": 60.0, #旋转角度
+            "hold_time_s": 0.1,
             "joint_name": "RevoluteJoint",
             "direction": "ccw", #cw顺时针，ccw逆时针
         },
