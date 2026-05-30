@@ -35,8 +35,6 @@ from tacex.simulation_approaches.fots import FOTSMarkerSimulatorCfg  # isort: sk
 
 
 
-# y_red_rand = 0.2 + (torch.rand(1, device="cuda") - 0.5) * 0.2  # 在 [0.1, 0.3] 之间随机
-# y_blue_rand = -0.2 + (torch.rand(1, device="cuda") - 0.5) * 0.2  # 在 [0.1, 0.3] 之间随机
 @configclass
 class EventCfg:
     """Configuration for events."""
@@ -103,7 +101,7 @@ class EventCfg:
         params={
             "pose_range": {
                 "x": (0.8, 0.8),           # x 固定
-                "y": (0.1, 0.3),           # y 在 0.2±0.1 范围内随机
+                "y": (0.2, 0.2),           # y 固定
                 "z": (1.5, 1.5),           # z 固定
             },
             "fixed_quat": torch.tensor([0.70711, 0.70711, 0.0, 0.0]),  # 固定的四元数
@@ -132,7 +130,7 @@ class EventCfg:
         params={
             "pose_range": {
                 "x": (0.8, 0.8),           # x 固定
-                "y": (-0.3, -0.1),           # y 在 0.2±0.1 范围内随机
+                "y": (-0.25, -0.25),         # y 固定
                 "z": (1.5, 1.5),           # z 固定
             },
             "fixed_quat": torch.tensor([0.70711, 0.70711, 0.0, 0.0]),  # 固定的四元数
@@ -380,4 +378,3 @@ class FrankaGetBookEnvCfg(GetBookEnvCfg):
             prim_path="{ENV_REGEX_NS}/panda_right/gelsight_mini_case_left",
             marker_motion_sim_cfg=self._marker_cfg("/World/envs/env_.*/panda_right/gelpad_left"),
         )  # 触觉图像
-

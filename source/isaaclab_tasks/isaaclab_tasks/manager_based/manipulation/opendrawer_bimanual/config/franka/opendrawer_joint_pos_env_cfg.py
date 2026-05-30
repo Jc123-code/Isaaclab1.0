@@ -176,7 +176,7 @@ class FrankaOpenDrawerEnvCfg(OpenDrawerEnvCfg):
                     dx=26,
                     dy=29,
                 ),
-                tactile_img_res=(320, 240), #rgb图分辨率
+                tactile_img_res=(240, 180), #rgb图分辨率
                 device="cuda",
                 frame_transformer_cfg=FrameTransformerCfg(
                     prim_path=gelpad_prim,
@@ -194,7 +194,7 @@ class FrankaOpenDrawerEnvCfg(OpenDrawerEnvCfg):
             sensor_camera_cfg=GelSightMiniCfg.SensorCameraCfg(
                 prim_path_appendix="/Camera",
                 update_period=0,
-                resolution=(320, 240),  #深度图
+                resolution=(240, 180),  #深度图
                 data_types=["depth"],
                 clipping_range=(0.024, 0.034),
             ),
@@ -207,7 +207,7 @@ class FrankaOpenDrawerEnvCfg(OpenDrawerEnvCfg):
         gsmini_template.optical_sim_cfg = gsmini_template.optical_sim_cfg.replace(
             with_shadow=False,
             device="cuda",
-            tactile_img_res=(320, 240), # fotsmarker图
+            tactile_img_res=(240, 180), # fotsmarker图
         )
 
         # One GelSight per hand (left finger only) to avoid duplicate windows

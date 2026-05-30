@@ -111,7 +111,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     stand = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Stand",
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 1.781), rot=(1.0, 0.0, 0.0, 0.0)),
-        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_zed.usd",
+        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_zed(changed_zed).usd",
                          scale=(1.0, 1.0, 1.0)),
     )
 

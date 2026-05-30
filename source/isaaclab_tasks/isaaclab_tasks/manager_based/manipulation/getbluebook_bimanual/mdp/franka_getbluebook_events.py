@@ -153,7 +153,7 @@ def reset_book_pose_to_default(
     fixed_quat: torch.Tensor,
     asset_cfg: list[SceneEntityCfg],
 ):
-    """Reset the book rigid object to a randomized pose and zero velocity."""
+    """Reset the book rigid object to a fixed pose and zero velocity."""
     
     if env_ids is None or len(env_ids) == 0:
         return
@@ -163,11 +163,11 @@ def reset_book_pose_to_default(
     
     num_envs = len(env_ids)
     
-    # 为每个环境随机生成位置
+    # 为每个环境生成固定位置
     positions = torch.zeros((num_envs, 3), device=env.device)
-    positions[:, 0] = torch.rand(num_envs, device=env.device) * (pose_range["x"][1] - pose_range["x"][0]) + pose_range["x"][0]
-    positions[:, 1] = torch.rand(num_envs, device=env.device) * (pose_range["y"][1] - pose_range["y"][0]) + pose_range["y"][0]
-    positions[:, 2] = torch.rand(num_envs, device=env.device) * (pose_range["z"][1] - pose_range["z"][0]) + pose_range["z"][0]
+    positions[:, 0] = pose_range["x"][0]
+    positions[:, 1] = pose_range["y"][0]
+    positions[:, 2] = pose_range["z"][0]
     
     # 加上环境原点偏移
     positions += env.scene.env_origins[env_ids, 0:3]
@@ -187,7 +187,7 @@ def reset_book_pose_to_default(
         env_ids=env_ids
     )
     
-    print(f"[Reset] Book pose randomized for env_ids={env_ids.tolist()}")
+    print(f"[Reset] Book pose fixed for env_ids={env_ids.tolist()}")
 
         
 def randomize_scene_lighting_domelight(

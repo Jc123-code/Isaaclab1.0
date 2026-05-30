@@ -177,7 +177,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     stand = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Stand",
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 1.781), rot=(1.0, 0.0, 0.0, 0.0)),
-        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_zed.usd",
+        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/Stand/stand_zed(changed_zed).usd",
                          scale=(1.0, 1.0, 1.0)),
     )
 
@@ -280,7 +280,24 @@ class ObservationsCfg:
         table_cam = ObsTerm(
             func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
         )
-        
+                # Tactile observations for dataset recording (saved under obs/policy in hdf5).
+        gsmini_left_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_right_left_tactile_rgb = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "tactile_rgb", "normalize": False},
+        )
+        gsmini_left_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_left_left"), "data_type": "marker_motion", "normalize": False},
+        )
+        gsmini_right_left_marker_motion = ObsTerm(
+            func=mdp.image,
+            params={"sensor_cfg": SceneEntityCfg("gsmini_right_left"), "data_type": "marker_motion", "normalize": False},
+        )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False

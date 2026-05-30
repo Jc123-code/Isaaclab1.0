@@ -2,6 +2,7 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+import math
 import torch
 import isaaclab.sim as sim_utils
 
@@ -72,10 +73,17 @@ class EventCfg:
     )
 
     reset_mortar_pose = EventTerm(
-        func=franka_clean_mortarbarrel_events.reset_pose_to_default,
+        func=franka_clean_mortarbarrel_events.reset_pose_randomize_in_xy_ellipse,
         mode="reset",
         params={
             "default_pose": torch.tensor(MORTAR_DEFAULT_ROOT_STATE, device="cuda"),
+            "x_radius": 0.04,
+            "y_radius": 0.04,
+            "roll_range": (-math.radians(5.0), math.radians(5.0)),
+            "pitch_range": (-math.radians(5.0), math.radians(5.0)),
+            "yaw_range": (-math.radians(10.0), math.radians(10.0)),
+            "parent_asset_cfg": SceneEntityCfg("table"),
+            "joint_name": "mortar_weld_joint",
             "asset_cfg": [SceneEntityCfg("mortar")],
         },
     )
@@ -283,7 +291,7 @@ class FrankaCleanmortarbarrelEnvCfg(CleanmortarbarrelEnvCfg):
                 dx=26,
                 dy=29,
             ),
-            tactile_img_res=(320, 240),  # rgb图分辨率
+            tactile_img_res=(240, 180),  # rgb图分辨率
             device="cuda",
             frame_transformer_cfg=FrameTransformerCfg(
                 prim_path=gelpad_prim,
@@ -303,7 +311,7 @@ class FrankaCleanmortarbarrelEnvCfg(CleanmortarbarrelEnvCfg):
             sensor_camera_cfg=GelSightMiniCfg.SensorCameraCfg(
                 prim_path_appendix="/Camera",
                 update_period=0,
-                resolution=(320, 240),  # 深度图
+                resolution=(240, 180),  # 深度图
                 data_types=["depth"],
                 clipping_range=(0.024, 0.034),
             ),
@@ -316,7 +324,7 @@ class FrankaCleanmortarbarrelEnvCfg(CleanmortarbarrelEnvCfg):
         gsmini_template.optical_sim_cfg = gsmini_template.optical_sim_cfg.replace(
             with_shadow=False,
             device="cuda",
-            tactile_img_res=(320, 240),  # fotsmarker图
+            tactile_img_res=(240, 180),  # fotsmarker图
         )
 
         # One GelSight per hand (left finger only) to avoid duplicate windows.
